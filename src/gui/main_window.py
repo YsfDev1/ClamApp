@@ -104,43 +104,66 @@ class ModernSidebar(QFrame):
         self.logo.setStyleSheet("color: #89b4fa; font-size: 24px; font-weight: bold; margin-bottom: 20px; padding-left: 15px;")
         layout.addWidget(self.logo)
 
-        self.btn_dashboard = QPushButton(f" {self.trans.get('dashboard')}")
+        self.btn_dashboard = QPushButton(f"🏠 {self.trans.get('dashboard')}")
         self.btn_dashboard.setCheckable(True)
         self.btn_dashboard.setChecked(True)
 
-        self.btn_scan = QPushButton(f" {self.trans.get('scan')}")
+        self.btn_scan = QPushButton(f"🔍 {self.trans.get('scan')}")
         self.btn_scan.setCheckable(True)
 
-        self.btn_quarantine = QPushButton(f" {self.trans.get('quarantine')}")
+        self.btn_quarantine = QPushButton(f"🛡 {self.trans.get('quarantine')}")
         self.btn_quarantine.setCheckable(True)
 
-        self.btn_settings = QPushButton(f" {self.trans.get('settings')}")
+        # Separator label
+        self.sep_label = QLabel()
+        self.sep_label.setFixedHeight(1)
+        self.sep_label.setStyleSheet("background-color: #313244; margin: 4px 10px;")
+
+        self.btn_network = QPushButton(f"🌐 {self.trans.get('active_connections')}")
+        self.btn_network.setCheckable(True)
+
+        self.btn_security = QPushButton(f"🔒 {self.trans.get('security_tools')}")
+        self.btn_security.setCheckable(True)
+
+        self.btn_settings = QPushButton(f"⚙ {self.trans.get('settings')}")
         self.btn_settings.setCheckable(True)
 
-        for btn in [self.btn_dashboard, self.btn_scan, self.btn_quarantine, self.btn_settings]:
+        for btn in [self.btn_dashboard, self.btn_scan, self.btn_quarantine]:
             layout.addWidget(btn)
-
+        layout.addWidget(self.sep_label)
+        for btn in [self.btn_network, self.btn_security]:
+            layout.addWidget(btn)
         layout.addStretch()
+        layout.addWidget(self.btn_settings)
+
         self.version_label = QLabel("v0.3.0")
         self.version_label.setStyleSheet("color: #585b70; padding: 10px;")
         layout.addWidget(self.version_label)
         self.apply_theme(True)
+
+    @property
+    def _all_nav_btns(self):
+        return [self.btn_dashboard, self.btn_scan, self.btn_quarantine,
+                self.btn_network, self.btn_security, self.btn_settings]
 
     def apply_theme(self, dark=True):
         c = DARK if dark else LIGHT
         self.setStyleSheet(f"""
             ModernSidebar {{ background-color: {c['sidebar']}; border-right: 1px solid {c['sidebar_border']}; }}
         """)
-        for btn in [self.btn_dashboard, self.btn_scan, self.btn_quarantine, self.btn_settings]:
+        for btn in self._all_nav_btns:
             btn.setStyleSheet(self._btn_style(c))
         self.logo.setStyleSheet(f"color: {c['accent']}; font-size: 24px; font-weight: bold; margin-bottom: 20px; padding-left: 15px;")
         self.version_label.setStyleSheet(f"color: {c['muted']}; padding: 10px;")
+        self.sep_label.setStyleSheet(f"background-color: {c['sidebar_border']}; margin: 4px 10px;")
 
     def retranslate(self):
-        self.btn_dashboard.setText(f" {self.trans.get('dashboard')}")
-        self.btn_scan.setText(f" {self.trans.get('scan')}")
-        self.btn_quarantine.setText(f" {self.trans.get('quarantine')}")
-        self.btn_settings.setText(f" {self.trans.get('settings')}")
+        self.btn_dashboard.setText(f"🏠 {self.trans.get('dashboard')}")
+        self.btn_scan.setText(f"🔍 {self.trans.get('scan')}")
+        self.btn_quarantine.setText(f"🛡 {self.trans.get('quarantine')}")
+        self.btn_network.setText(f"🌐 {self.trans.get('active_connections')}")
+        self.btn_security.setText(f"🔒 {self.trans.get('security_tools')}")
+        self.btn_settings.setText(f"⚙ {self.trans.get('settings')}")
 
 
 # ─────────────────────────────────────────────────────────
@@ -601,56 +624,56 @@ class MainWindow(QMainWindow):
         self.sidebar = ModernSidebar(self.trans)
         main_layout.addWidget(self.sidebar)
 
-        # Content area — index 0 = main_tabs, index 1 = settings
+        # ── Unified content area (one stack for all sections) ──
         self.content_area = QStackedWidget()
         main_layout.addWidget(self.content_area)
 
-        # --- Antivirus stacked widget ---
+        # --- Antivirus section (sub-stack) ---
         self.dashboard = DashboardView(self.wrapper, self.trans)
         self.scan_view = ScanView(self.wrapper, self.trans)
         self.results_view = ResultsSummaryView(self.wrapper, self.trans)
         self.quarantine_view = QuarantineView(self.wrapper, self.trans)
 
         self.antivirus_stack = QStackedWidget()
-        self.antivirus_stack.addWidget(self.dashboard)   # 0
-        self.antivirus_stack.addWidget(self.scan_view)   # 1
-        self.antivirus_stack.addWidget(self.results_view) # 2
-        self.antivirus_stack.addWidget(self.quarantine_view) # 3
+        self.antivirus_stack.addWidget(self.dashboard)        # 0
+        self.antivirus_stack.addWidget(self.scan_view)        # 1
+        self.antivirus_stack.addWidget(self.results_view)     # 2
+        self.antivirus_stack.addWidget(self.quarantine_view)  # 3
 
-        # --- Security Tools inner-tab (left sidebar sub-tabs) ---
+        # --- Network View (separate sidebar section) ---
+        self.network_view = NetworkView(self.trans)
+
+        # --- Security Tools (inner-tabs, separate sidebar section) ---
         self.password_view = PasswordGeneratorView(self.trans)
         self.cipher_view = CipherView(self.trans)
         self.hash_view = HashToolView(self.trans)
 
-        # Security Tools tab widget inside Security Tools
         self.security_tabs = QTabWidget()
         self.security_tabs.setStyleSheet(self._tab_style(True))
         self.security_tabs.addTab(self.password_view, self.trans.get("password_gen"))
         self.security_tabs.addTab(self.cipher_view, self.trans.get("cipher_tool"))
         self.security_tabs.addTab(self.hash_view, self.trans.get("hash_tool"))
 
-        # --- Network View ---
-        self.network_view = NetworkView(self.trans)
-
-        # --- Main QTabWidget ---
-        self.main_tabs = QTabWidget()
-        self.main_tabs.setStyleSheet(self._tab_style(True))
-        self.main_tabs.addTab(self.antivirus_stack, self.trans.get("antivirus"))       # Tab 0
-        self.main_tabs.addTab(self.security_tabs, self.trans.get("security_tools"))    # Tab 1
-        self.main_tabs.addTab(self.network_view, self.trans.get("active_connections")) # Tab 2
-        self.main_tabs.currentChanged.connect(self._on_main_tab_changed)
-
-        # Settings view
+        # --- Settings view ---
         self.settings_view = SettingsView(self.wrapper, self.trans)
 
-        # Add to content area
-        self.content_area.addWidget(self.main_tabs)   # 0
-        self.content_area.addWidget(self.settings_view) # 1
+        # Add all sections to content_area (unified stack)
+        # Indices:
+        #   0 = antivirus_stack
+        #   1 = network_view
+        #   2 = security_tabs
+        #   3 = settings_view
+        self.content_area.addWidget(self.antivirus_stack)  # 0
+        self.content_area.addWidget(self.network_view)     # 1
+        self.content_area.addWidget(self.security_tabs)    # 2
+        self.content_area.addWidget(self.settings_view)    # 3
 
         # Wire up sidebar buttons
         self.sidebar.btn_dashboard.clicked.connect(lambda: self._show_antivirus(0))
         self.sidebar.btn_scan.clicked.connect(lambda: self._show_antivirus(1))
         self.sidebar.btn_quarantine.clicked.connect(lambda: self._show_antivirus(3))
+        self.sidebar.btn_network.clicked.connect(lambda: self._show_section(1))
+        self.sidebar.btn_security.clicked.connect(lambda: self._show_section(2))
         self.sidebar.btn_settings.clicked.connect(lambda: self._show_settings())
 
         # Wire up scan buttons
@@ -696,7 +719,6 @@ class MainWindow(QMainWindow):
         self.results_view.apply_theme(dark)
         self.quarantine_view.apply_theme(dark)
         self.settings_view.apply_theme(dark)
-        self.main_tabs.setStyleSheet(self._tab_style(dark))
         self.security_tabs.setStyleSheet(self._tab_style(dark))
         self.password_view.apply_theme(dark)
         self.cipher_view.apply_theme(dark)
@@ -732,43 +754,43 @@ class MainWindow(QMainWindow):
         self.cipher_view.retranslate()
         self.hash_view.retranslate()
         self.network_view.retranslate()
-        self.main_tabs.setTabText(0, self.trans.get("antivirus"))
-        self.main_tabs.setTabText(1, self.trans.get("security_tools"))
-        self.main_tabs.setTabText(2, self.trans.get("active_connections"))
         self.security_tabs.setTabText(0, self.trans.get("password_gen"))
         self.security_tabs.setTabText(1, self.trans.get("cipher_tool"))
         self.security_tabs.setTabText(2, self.trans.get("hash_tool"))
 
     # ── Navigation ──────────────────────────────────────────────────────────
 
-    def _on_main_tab_changed(self, index):
-        """When user clicks a main tab, deselect sidebar buttons."""
-        if index != 0:  # Not antivirus tab — decheck sidebar
-            for btn in [self.sidebar.btn_dashboard, self.sidebar.btn_scan, self.sidebar.btn_quarantine]:
-                btn.blockSignals(True)
-                btn.setChecked(False)
-                btn.blockSignals(False)
-
-    def _show_antivirus(self, stack_index):
-        self.content_area.setCurrentIndex(0)
-        self.main_tabs.setCurrentIndex(0)
-        self.antivirus_stack.setCurrentIndex(stack_index)
-        # Update sidebar
-        mapping = {0: self.sidebar.btn_dashboard, 1: self.sidebar.btn_scan, 3: self.sidebar.btn_quarantine}
-        for idx, btn in mapping.items():
-            btn.blockSignals(True)
-            btn.setChecked(idx == stack_index)
-            btn.blockSignals(False)
-        self.sidebar.btn_settings.blockSignals(True)
-        self.sidebar.btn_settings.setChecked(False)
-        self.sidebar.btn_settings.blockSignals(False)
-
-    def _show_settings(self):
-        self.content_area.setCurrentIndex(1)
-        for btn in [self.sidebar.btn_dashboard, self.sidebar.btn_scan, self.sidebar.btn_quarantine]:
+    def _uncheck_all_sidebar(self):
+        """Decheck all sidebar nav buttons (without triggering signals)."""
+        for btn in self.sidebar._all_nav_btns:
             btn.blockSignals(True)
             btn.setChecked(False)
             btn.blockSignals(False)
+
+    def _show_antivirus(self, stack_index):
+        self._uncheck_all_sidebar()
+        self.content_area.setCurrentIndex(0)  # antivirus_stack
+        self.antivirus_stack.setCurrentIndex(stack_index)
+        # Check the relevant sidebar button
+        mapping = {0: self.sidebar.btn_dashboard, 1: self.sidebar.btn_scan, 3: self.sidebar.btn_quarantine}
+        btn = mapping.get(stack_index)
+        if btn:
+            btn.blockSignals(True)
+            btn.setChecked(True)
+            btn.blockSignals(False)
+
+    def _show_section(self, content_index):
+        """Show network (1) or security tools (2) section."""
+        self._uncheck_all_sidebar()
+        self.content_area.setCurrentIndex(content_index)
+        btn = self.sidebar.btn_network if content_index == 1 else self.sidebar.btn_security
+        btn.blockSignals(True)
+        btn.setChecked(True)
+        btn.blockSignals(False)
+
+    def _show_settings(self):
+        self._uncheck_all_sidebar()
+        self.content_area.setCurrentIndex(3)  # settings_view
         self.sidebar.btn_settings.blockSignals(True)
         self.sidebar.btn_settings.setChecked(True)
         self.sidebar.btn_settings.blockSignals(False)
