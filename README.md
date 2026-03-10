@@ -54,6 +54,5 @@ cd ClamApp
 # Install required dependencies
 pip install -r requirements.txt
 
-
 # Launch the application
 python main.py
