@@ -104,6 +104,26 @@ class Translations:
             "connection_count": "Connections",
             "refresh": "Refresh",
             "auto_refresh_5s": "Auto-refresh: every 5s",
+            # --- Data Destroyer ---
+            "data_destroyer": "Data Destroyer",
+            "select_shred": "Select File to Shred",
+            "shred_confirm": "Confirm Shredding",
+            "shred_warn": "Are you absolutely sure you want to shred this file?\n\nThis action is PERMANENT and the file cannot be recovered.",
+            "permanently_shred": "PERMANENTLY SHRED",
+            # --- Crypto Vault ---
+            "crypto_vault": "Cryptographic Vault",
+            "select_file": "Select File",
+            "security_key": "Security Key (Password)",
+            "encrypt": "ENCRYPT",
+            "decrypt": "DECRYPT",
+            "key_required": "Security Key Required",
+            "key_required_msg": "Please enter a security key (password).",
+            # --- Privacy Shield ---
+            "privacy_shield": "Privacy Shield",
+            "select_inspect": "Select Image to Inspect",
+            "extracted_metadata": "Extracted Metadata",
+            "sanitize": "SANITIZE (Remove Metadata)",
+            "sanitized_msg": "Image sanitized. Re-select the file to inspect the sanitized version.",
         },
         "tr": {
             # --- Sidebar ---
@@ -209,6 +229,26 @@ class Translations:
             "connection_count": "Bağlantı",
             "refresh": "Yenile",
             "auto_refresh_5s": "Otomatik yenileme: 5 saniyede bir",
+            # --- Data Destroyer ---
+            "data_destroyer": "Veri İmha Edici",
+            "select_shred": "İmha Edilecek Dosyayı Seç",
+            "shred_confirm": "İmha Onayı",
+            "shred_warn": "Bu dosyayı imha etmek istediğinizden kesinlikle emin misiniz?\n\nBu işlem GERİ DÖNDÜRÜLEMEZ ve dosya kurtarılamaz.",
+            "permanently_shred": "KALICI OLARAK İMHA ET",
+            # --- Crypto Vault ---
+            "crypto_vault": "Kriptografik Kasa",
+            "select_file": "Dosya Seç",
+            "security_key": "Güvenlik Anahtarı (Şifre)",
+            "encrypt": "ŞİFRELE",
+            "decrypt": "ŞİFRE ÇÖZ",
+            "key_required": "Güvenlik Anahtarı Gerekli",
+            "key_required_msg": "Lütfen bir güvenlik anahtarı (şifre) girin.",
+            # --- Privacy Shield ---
+            "privacy_shield": "Gizlilik Kalkanı",
+            "select_inspect": "İncelenecek Resmi Seç",
+            "extracted_metadata": "Ayıklanan Meta Veriler",
+            "sanitize": "TEMİZLE (Meta Verileri Kaldır)",
+            "sanitized_msg": "Resim temizlendi. Temizlenmiş versiyonu incelemek için dosyayı tekrar seçin.",
         }
     }
 

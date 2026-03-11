@@ -4,32 +4,7 @@
         "threats_found": 4,
         "objects_scanned": 300
     },
-    "quarantine": [
-        {
-            "original_path": "/home/yusuf/Masa\u00fcst\u00fc/test/Yeni Bo\u015f Dosya",
-            "quarantine_path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/quarantine/20260307_135541_Yeni Bo\u015f Dosya",
-            "date": "2026-03-07 13:55:41",
-            "id": "migrated_0"
-        },
-        {
-            "original_path": "/home/yusuf/Masa\u00fcst\u00fc/test/Virus",
-            "quarantine_path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/quarantine/20260307_135704_Virus",
-            "date": "2026-03-07 13:57:04",
-            "id": "migrated_1"
-        },
-        {
-            "id": "20260308_160942",
-            "original_path": "/home/yusuf/Masa\u00fcst\u00fc/virus/20260307_135541_Yeni Bo\u015f Dosya",
-            "quarantine_path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/quarantine/20260308_160942_20260307_135541_Yeni Bo\u015f Dosya",
-            "date": "2026-03-08 16:09:42"
-        },
-        {
-            "id": "20260308_160942",
-            "original_path": "/home/yusuf/Masa\u00fcst\u00fc/virus/20260307_135704_Virus",
-            "quarantine_path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/quarantine/20260308_160942_20260307_135704_Virus",
-            "date": "2026-03-08 16:09:42"
-        }
-    ],
+    "quarantine": [],
     "scan_history": [
         {
             "date": "2026-03-08 16:09:35",

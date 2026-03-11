@@ -20,6 +20,9 @@ from gui.password_gen_view import PasswordGeneratorView
 from gui.cipher_view import CipherView
 from gui.hash_tool_view import HashToolView
 from gui.network_view import NetworkView
+from gui.shredder_view import ShredderView
+from gui.vault_view import VaultView
+from gui.privacy_view import PrivacyView
 
 # ─────────────────────────────────────────────────────────
 #  Theming helper
@@ -647,12 +650,18 @@ class MainWindow(QMainWindow):
         self.password_view = PasswordGeneratorView(self.trans)
         self.cipher_view = CipherView(self.trans)
         self.hash_view = HashToolView(self.trans)
+        self.shredder_view = ShredderView(self.trans)
+        self.vault_view = VaultView(self.trans)
+        self.privacy_view = PrivacyView(self.trans)
 
         self.security_tabs = QTabWidget()
         self.security_tabs.setStyleSheet(self._tab_style(True))
         self.security_tabs.addTab(self.password_view, self.trans.get("password_gen"))
         self.security_tabs.addTab(self.cipher_view, self.trans.get("cipher_tool"))
         self.security_tabs.addTab(self.hash_view, self.trans.get("hash_tool"))
+        self.security_tabs.addTab(self.shredder_view, self.trans.get("data_destroyer"))
+        self.security_tabs.addTab(self.vault_view, self.trans.get("crypto_vault"))
+        self.security_tabs.addTab(self.privacy_view, self.trans.get("privacy_shield"))
 
         # --- Settings view ---
         self.settings_view = SettingsView(self.wrapper, self.trans)
@@ -723,6 +732,9 @@ class MainWindow(QMainWindow):
         self.password_view.apply_theme(dark)
         self.cipher_view.apply_theme(dark)
         self.hash_view.apply_theme(dark)
+        self.shredder_view.apply_theme(dark)
+        self.vault_view.apply_theme(dark)
+        self.privacy_view.apply_theme(dark)
         self.network_view.apply_theme(dark)
         # Background of content area and stacked widgets
         for w in [self.content_area, self.antivirus_stack]:
@@ -753,10 +765,16 @@ class MainWindow(QMainWindow):
         self.password_view.retranslate()
         self.cipher_view.retranslate()
         self.hash_view.retranslate()
+        self.shredder_view.retranslate()
+        self.vault_view.retranslate()
+        self.privacy_view.retranslate()
         self.network_view.retranslate()
         self.security_tabs.setTabText(0, self.trans.get("password_gen"))
         self.security_tabs.setTabText(1, self.trans.get("cipher_tool"))
         self.security_tabs.setTabText(2, self.trans.get("hash_tool"))
+        self.security_tabs.setTabText(3, self.trans.get("data_destroyer"))
+        self.security_tabs.setTabText(4, self.trans.get("crypto_vault"))
+        self.security_tabs.setTabText(5, self.trans.get("privacy_shield"))
 
     # ── Navigation ──────────────────────────────────────────────────────────
 
