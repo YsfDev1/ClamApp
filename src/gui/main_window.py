@@ -9,6 +9,7 @@ import os
 import sys
 import stat
 
+<<<<<<< HEAD
 
 # ─────────────────────────────────────────────────────────
 #  DB Update Thread — runs freshclam off the GUI thread
@@ -27,6 +28,8 @@ class DbUpdateThread(QThread):
         except Exception as exc:
             self.finished.emit({"status": "error", "message": str(exc)})
 
+=======
+>>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
 if os.path.dirname(os.path.dirname(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -939,9 +942,12 @@ class MainWindow(QMainWindow):
         self.scan_view.progress_bar.setRange(0, 0)
         self.scanner_thread = ScannerThread(self.wrapper.clamscan_path, path)
         self.scanner_thread.finished.connect(self.on_scan_finished)
+<<<<<<< HEAD
         self.scanner_thread.progress.connect(
             lambda msg: self.scan_view.progress_label.setText(msg[:120])
         )
+=======
+>>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
         self.scanner_thread.start()
 
     def on_scan_finished(self, results):
@@ -962,6 +968,7 @@ class MainWindow(QMainWindow):
     # ── Quarantine ─────────────────────────────────────────────────────────
 
     def quarantine_all_results(self):
+<<<<<<< HEAD
         failed = []
         succeeded = 0
         for f in self.current_infected:
@@ -1012,6 +1019,35 @@ class MainWindow(QMainWindow):
         except (OSError, PermissionError) as exc:
             QMessageBox.warning(self, "Permission Error",
                                 f"Could not delete file: {exc}")
+=======
+        for f in self.current_infected:
+            # Secure the quarantined file: move then strip executable permissions
+            success = self.wrapper.data_manager.quarantine_file(f)
+            if success:
+                q_items = self.wrapper.data_manager.data["quarantine"]
+                if q_items:
+                    q_path = q_items[-1]["quarantine_path"]
+                    try:
+                        # Strip all execute bits and make it read-only
+                        os.chmod(q_path, stat.S_IRUSR)
+                    except Exception:
+                        pass
+        self.quarantine_view.refresh()
+        QMessageBox.information(self, "Success", "Items moved to quarantine. Execute permissions stripped.")
+        self._show_antivirus(3)
+
+    def restore_file(self, id):
+        if self.wrapper.data_manager.restore_file(id):
+            self.quarantine_view.refresh()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to restore file.")
+
+    def delete_file(self, id):
+        if self.wrapper.data_manager.delete_permanently(id):
+            self.quarantine_view.refresh()
+        else:
+            QMessageBox.warning(self, "Error", "Failed to delete file.")
+>>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
 
     def view_code(self, path):
         content = self.wrapper.get_file_content(path)
@@ -1023,6 +1059,7 @@ class MainWindow(QMainWindow):
     def run_update(self):
         self.settings_view.btn_update_db.setText(self.trans.get("updating"))
         self.settings_view.btn_update_db.setDisabled(True)
+<<<<<<< HEAD
         self._db_thread = DbUpdateThread(self.wrapper, parent=self)
         self._db_thread.finished.connect(self._on_update_finished)
         self._db_thread.start()
@@ -1037,6 +1074,16 @@ class MainWindow(QMainWindow):
         self.dashboard.db_label.setText(
             f"{self.trans.get('last_update')}: {self.wrapper.get_database_info()}"
         )
+=======
+        res = self.wrapper.update_database()
+        if res["status"] == "success":
+            QMessageBox.information(self, "Update", res["message"])
+        else:
+            QMessageBox.warning(self, "Update", res["message"])
+        self.settings_view.btn_update_db.setText(self.trans.get("update_db"))
+        self.settings_view.btn_update_db.setDisabled(False)
+        self.dashboard.db_label.setText(f"{self.trans.get('last_update')}: {self.wrapper.get_database_info()}")
+>>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
 
     # ── Stop Scan ───────────────────────────────────────────────────────────
 
