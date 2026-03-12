@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 <p align="center">
   <img src="assets/icons/clamapp.png" alt="ClamApp logo" width="120" />
 </p>
