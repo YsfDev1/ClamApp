@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="assets/icons/clamapp.png" alt="ClamApp logo" width="120" />
+  <img src="assets/icons/assets/icons/IMG_20260312_220236.png" alt="ClamApp logo" width="120" />
 </p>
 
 <h1 align="center">ClamApp</h1>
