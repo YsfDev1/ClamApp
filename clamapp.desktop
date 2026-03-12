@@ -1,0 +1,29 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ClamApp
+GenericName=Antivirus Security Suite
+Comment=Professional ClamAV GUI front-end with real-time network monitoring and security tools
+Exec=clamapp %F
+Icon=clamapp
+Terminal=false
+StartupNotify=true
+StartupWMClass=ClamApp
+Categories=System;Security;Utility;
+Keywords=antivirus;malware;security;clamav;scanner;virus;
+
+# MIME types this app can handle (scan dropped files)
+MimeType=application/octet-stream;inode/directory;
+
+# Actions shown in taskbar right-click (GNOME/KDE)
+Actions=QuickScan;FullScan;
+
+[Desktop Action QuickScan]
+Name=Quick Scan (Home Directory)
+Exec=clamapp --quick-scan
+Icon=clamapp
+
+[Desktop Action FullScan]
+Name=Full System Scan
+Exec=clamapp --full-scan
+Icon=clamapp

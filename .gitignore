@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────
+#  ClamApp — .gitignore
+#  SECURITY: quarantine dir and app_data.json MUST never be
+#  committed (they may contain malware or personal data paths).
+# ─────────────────────────────────────────────────────────────
+
+# ── Runtime / local data (SECURITY CRITICAL) ──────────────────
+quarantine/
+app_data.json
+*.meta.json
+~/.clamapp/
+
+# ── Python bytecode ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Distribution / packaging ───────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.eggs/
+
+# ── Virtual environments ───────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+.python-version
+
+# ── Test artefacts ─────────────────────────────────────────────
+tests/test_outputs/
+tests/test_quarantine_base/
+.pytest_cache/
+.coverage
+htmlcov/
+*.lcov
+coverage.xml
+.tox/
+.nox/
+
+# ── IDEs ───────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*~
+
+# ── OS cruft ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Logs ───────────────────────────────────────────────────────
+*.log
+freshclam.log
+
+# ── Secrets / keys ─────────────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.vault
