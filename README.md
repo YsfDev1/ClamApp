@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YOUR_USERNAME/ClamApp/releases"><img src="https://img.shields.io/github/v/release/YOUR_USERNAME/ClamApp?style=flat-square" alt="Latest Release"/></a>
+  <a href="https://github.com/YsfDev1/ClamApp/releases"><img src="https://img.shields.io/github/v/release/YsfDev1/ClamApp?style=flat-square" alt="Latest Release"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"/></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-brightgreen?style=flat-square" alt="Python 3.10+"/>
   <img src="https://img.shields.io/badge/platform-Linux-lightgrey?style=flat-square" alt="Linux"/>
@@ -70,7 +70,7 @@ pyudev >= 0.24.0
 
 ### Option A — pip (recommended)
 ```bash
-git clone https://github.com/YOUR_USERNAME/ClamApp.git
+git clone https://github.com/YsfDev1/ClamApp.git
 cd ClamApp
 pip install .
 clamapp          # launch the app
@@ -78,7 +78,7 @@ clamapp          # launch the app
 
 ### Option B — virtual environment (development)
 ```bash
-git clone https://github.com/YOUR_USERNAME/ClamApp.git
+git clone https://github.com/YsfDev1/ClamApp.git
 cd ClamApp
 python -m venv .venv
 source .venv/bin/activate
