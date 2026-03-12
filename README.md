@@ -18,7 +18,7 @@ A modern and user friendly security app that Integrated with ClamAV engine.
 * **Real-time Feedback:** Live progress monitoring and detailed threat reporting.
 * **Modern UI/UX:** A sleek, responsive dark-themed interface built with **PyQt6**, following modern cybersecurity design principles.
 * **System Integration:** Lightweight architecture designed to run efficiently on **Pardus**, Debian, and Ubuntu-based distributions.
-* **other**: Users can examine the virus code safely. Built for enthusiasts too. network tracking, startup apps, app manager, task magarr and other utilites...
+* **other**: Users can examine the virus code safely. Built for enthusiasts too. network tracking, startup apps, app manager, task manager, and other utilities...
 
 ---
 
