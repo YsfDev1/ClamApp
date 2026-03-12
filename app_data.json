@@ -1,11 +1,25 @@
 {
     "stats": {
-        "total_scans": 3,
-        "threats_found": 4,
-        "objects_scanned": 300
+        "total_scans": 5,
+        "threats_found": 5,
+        "objects_scanned": 500
     },
     "quarantine": [],
     "scan_history": [
+        {
+            "date": "2026-03-12 10:10:10",
+            "type": "Custom",
+            "path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/tests/eicar",
+            "threats": 1,
+            "objects": 100
+        },
+        {
+            "date": "2026-03-12 10:09:36",
+            "type": "Custom",
+            "path": "/home/yusuf/Masa\u00fcst\u00fc/virus",
+            "threats": 0,
+            "objects": 100
+        },
         {
             "date": "2026-03-08 16:09:35",
             "type": "Custom",

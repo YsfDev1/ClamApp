@@ -39,12 +39,27 @@ class ClamWrapper:
             return {"status": "error", "message": "freshclam not found"}
         
         try:
-            # Use pkexec to get permissions for freshclam
-            result = subprocess.run(["pkexec", self.freshclam_path], 
+            # Check if freshclam service is running (common on Debian/Pardus)
+            # If it's running, freshclam command will fail due to lock.
+            # We try to use a command that stops the service, updates, and restarts.
+            update_cmd = (
+                "systemctl stop clamav-freshclam && "
+                f"{self.freshclam_path} && "
+                "systemctl start clamav-freshclam"
+            )
+            
+            # Use pkexec for the whole chain
+            result = subprocess.run(["pkexec", "sh", "-c", update_cmd], 
                                  capture_output=True, text=True)
+            
             if result.returncode == 0:
                 return {"status": "success", "message": "Database updated successfully"}
             else:
+                # If systemctl fails (e.g. not using systemd), try direct update
+                result = subprocess.run(["pkexec", self.freshclam_path], 
+                                     capture_output=True, text=True)
+                if result.returncode == 0:
+                    return {"status": "success", "message": "Database updated successfully"}
                 return {"status": "error", "message": result.stderr or "Update failed or cancelled."}
         except Exception as e:
             return {"status": "error", "message": str(e)}

@@ -34,11 +34,11 @@ class ShredderView(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        self.title = QLabel("Data Destroyer (Shredder)")
+        self.title = QLabel(self.trans.get("data_destroyer"))
         self.title.setStyleSheet("font-size: 24px; font-weight: bold; color: #f38ba8;")
         layout.addWidget(self.title)
 
-        self.desc = QLabel("Securely delete files by overwriting them with random data. Once shredded, files cannot be recovered.")
+        self.desc = QLabel(self.trans.get("shred_desc") if self.trans.get("shred_desc") != "shred_desc" else "Securely delete files by overwriting them with random data. Once shredded, files cannot be recovered.")
         self.desc.setWordWrap(True)
         self.desc.setStyleSheet("color: #cdd6f4; font-size: 14px;")
         layout.addWidget(self.desc)
@@ -48,12 +48,12 @@ class ShredderView(QWidget):
         self.card.setStyleSheet("background-color: #313244; border-radius: 10px; padding: 20px;")
         card_layout = QVBoxLayout(self.card)
 
-        self.btn_select = QPushButton("Select File to Shred")
+        self.btn_select = QPushButton(self.trans.get("select_shred"))
         self.btn_select.setStyleSheet("background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 15px; border-radius: 5px;")
         self.btn_select.clicked.connect(self.select_file)
         card_layout.addWidget(self.btn_select)
 
-        self.file_label = QLabel("No file selected")
+        self.file_label = QLabel(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
         self.file_label.setStyleSheet("color: #bac2de; margin-top: 10px;")
         card_layout.addWidget(self.file_label)
 
@@ -69,7 +69,7 @@ class ShredderView(QWidget):
         self.progress_bar.setHidden(True)
         layout.addWidget(self.progress_bar)
 
-        self.btn_shred = QPushButton("PERMANENTLY SHRED")
+        self.btn_shred = QPushButton(self.trans.get("permanently_shred"))
         self.btn_shred.setEnabled(False)
         self.btn_shred.setStyleSheet("background-color: #f38ba8; color: #11111b; font-weight: bold; padding: 15px; border-radius: 5px;")
         self.btn_shred.clicked.connect(self.start_shredding)
@@ -92,18 +92,18 @@ class ShredderView(QWidget):
         self.file_label.setStyleSheet(f"color: {text}; margin-top: 10px;")
 
     def select_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Shred")
+        file_path, _ = QFileDialog.getOpenFileName(self, self.trans.get("select_shred"))
         if file_path:
             self.selected_file = file_path
-            self.file_label.setText(f"Target: {os.path.basename(file_path)}")
+            self.file_label.setText(f"{self.trans.get('target') if self.trans.get('target') != 'target' else 'Target'}: {os.path.basename(file_path)}")
             self.btn_shred.setEnabled(True)
 
     def start_shredding(self):
         if not self.selected_file:
             return
 
-        reply = QMessageBox.warning(self, "Confirm Shredding", 
-                                   f"Are you absolutely sure you want to shred '{os.path.basename(self.selected_file)}'?\n\nThis action is PERMANENT and the file cannot be recovered.",
+        reply = QMessageBox.warning(self, self.trans.get("shred_confirm"), 
+                                   self.trans.get("shred_warn"),
                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         
         if reply == QMessageBox.StandardButton.Yes:
@@ -119,14 +119,21 @@ class ShredderView(QWidget):
         self.progress_bar.setHidden(True)
         self.btn_select.setEnabled(True)
         self.btn_shred.setEnabled(False)
-        self.file_label.setText("No file selected")
+        self.file_label.setText(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
         self.selected_file = None
 
         if success:
-            QMessageBox.information(self, "Success", message)
+            QMessageBox.information(self, self.trans.get("success") if self.trans.get("success") != "success" else "Success", message)
         else:
-            QMessageBox.critical(self, "Error", message)
+            QMessageBox.critical(self, self.trans.get("error") if self.trans.get("error") != "error" else "Error", message)
 
     def retranslate(self):
-        # Add translations later if needed
-        pass
+        self.title.setText(self.trans.get("data_destroyer"))
+        self.desc.setText(self.trans.get("shred_desc") if self.trans.get("shred_desc") != "shred_desc" else "Securely delete files by overwriting them with random data. Once shredded, files cannot be recovered.")
+        self.btn_select.setText(self.trans.get("select_shred"))
+        self.btn_shred.setText(self.trans.get("permanently_shred"))
+        if not self.selected_file:
+            self.file_label.setText(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
+        else:
+            self.file_label.setText(f"{self.trans.get('target') if self.trans.get('target') != 'target' else 'Target'}: {os.path.basename(self.selected_file)}")
+

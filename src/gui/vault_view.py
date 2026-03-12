@@ -37,11 +37,11 @@ class VaultView(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        self.title = QLabel("Cryptographic Vault")
+        self.title = QLabel(self.trans.get("crypto_vault"))
         self.title.setStyleSheet("font-size: 24px; font-weight: bold; color: #89b4fa;")
         layout.addWidget(self.title)
 
-        self.desc = QLabel("Securely encrypt or decrypt any file. Use a strong password to protect your data.")
+        self.desc = QLabel(self.trans.get("vault_desc") if self.trans.get("vault_desc") != "vault_desc" else "Securely encrypt or decrypt any file. Use a strong password to protect your data.")
         self.desc.setWordWrap(True)
         self.desc.setStyleSheet("color: #cdd6f4; font-size: 14px;")
         layout.addWidget(self.desc)
@@ -53,33 +53,34 @@ class VaultView(QWidget):
 
         # File selection
         file_row = QHBoxLayout()
-        self.btn_select = QPushButton("Select File")
+        self.btn_select = QPushButton(self.trans.get("select_file"))
         self.btn_select.setStyleSheet("background-color: #45475a; color: #cdd6f4; font-weight: bold; padding: 10px; border-radius: 5px;")
         self.btn_select.clicked.connect(self.select_file)
         file_row.addWidget(self.btn_select)
 
-        self.file_label = QLabel("No file selected")
+        self.file_label = QLabel(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
         self.file_label.setStyleSheet("color: #bac2de;")
         file_row.addWidget(self.file_label, 1)
         card_layout.addLayout(file_row)
 
         # Password input
-        card_layout.addWidget(QLabel("Security Key (Password):"))
+        self.lbl_key = QLabel(self.trans.get("security_key"))
+        card_layout.addWidget(self.lbl_key)
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setPlaceholderText("Enter encryption/decryption key...")
+        self.password_input.setPlaceholderText(self.trans.get("key_placeholder") if self.trans.get("key_placeholder") != "key_placeholder" else "Enter encryption/decryption key...")
         self.password_input.setStyleSheet("background-color: #1e1e2e; color: #cdd6f4; padding: 10px; border-radius: 5px; border: 1px solid #45475a;")
         card_layout.addWidget(self.password_input)
 
         # Buttons
         btn_row = QHBoxLayout()
-        self.btn_encrypt = QPushButton("ENCRYPT")
+        self.btn_encrypt = QPushButton(self.trans.get("encrypt"))
         self.btn_encrypt.setEnabled(False)
         self.btn_encrypt.setStyleSheet("background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 12px; border-radius: 5px;")
         self.btn_encrypt.clicked.connect(lambda: self.start_process('encrypt'))
         btn_row.addWidget(self.btn_encrypt)
 
-        self.btn_decrypt = QPushButton("DECRYPT")
+        self.btn_decrypt = QPushButton(self.trans.get("decrypt"))
         self.btn_decrypt.setEnabled(False)
         self.btn_decrypt.setStyleSheet("background-color: #fab387; color: #11111b; font-weight: bold; padding: 12px; border-radius: 5px;")
         self.btn_decrypt.clicked.connect(lambda: self.start_process('decrypt'))
@@ -116,7 +117,7 @@ class VaultView(QWidget):
         self.password_input.setStyleSheet(f"background-color: {bg}; color: {text}; padding: 10px; border-radius: 5px; border: 1px solid {card};")
 
     def select_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
+        file_path, _ = QFileDialog.getOpenFileName(self, self.trans.get("select_file"))
         if file_path:
             self.selected_file = file_path
             self.file_label.setText(os.path.basename(file_path))
@@ -126,7 +127,7 @@ class VaultView(QWidget):
     def start_process(self, action):
         password = self.password_input.text()
         if not password:
-            QMessageBox.warning(self, "Security Key Required", "Please enter a security key (password).")
+            QMessageBox.warning(self, self.trans.get("key_required"), self.trans.get("key_required_msg"))
             return
             
         if not self.selected_file:
@@ -150,12 +151,23 @@ class VaultView(QWidget):
         self.password_input.setEnabled(True)
         
         if success:
-            QMessageBox.information(self, "Success", message)
+            QMessageBox.information(self, self.trans.get("success") if self.trans.get("success") != "success" else "Success", message)
             self.password_input.clear()
-            self.file_label.setText("No file selected")
+            self.file_label.setText(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
             self.selected_file = None
         else:
-            QMessageBox.critical(self, "Vault Error", message)
+            QMessageBox.critical(self, self.trans.get("vault_error") if self.trans.get("vault_error") != "vault_error" else "Vault Error", message)
 
     def retranslate(self):
-        pass
+        self.title.setText(self.trans.get("crypto_vault"))
+        self.desc.setText(self.trans.get("vault_desc") if self.trans.get("vault_desc") != "vault_desc" else "Securely encrypt or decrypt any file. Use a strong password to protect your data.")
+        self.btn_select.setText(self.trans.get("select_file"))
+        self.lbl_key.setText(self.trans.get("security_key"))
+        self.password_input.setPlaceholderText(self.trans.get("key_placeholder") if self.trans.get("key_placeholder") != "key_placeholder" else "Enter encryption/decryption key...")
+        self.btn_encrypt.setText(self.trans.get("encrypt"))
+        self.btn_decrypt.setText(self.trans.get("decrypt"))
+        if not self.selected_file:
+            self.file_label.setText(self.trans.get("no_file_selected") if self.trans.get("no_file_selected") != "no_file_selected" else "No file selected")
+        else:
+            self.file_label.setText(os.path.basename(self.selected_file))
+

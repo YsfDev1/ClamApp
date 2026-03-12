@@ -41,11 +41,12 @@ class NetworkView(QWidget):
         self.info_label.setStyleSheet("color: #585b70; font-style: italic; margin-bottom: 10px;")
         layout.addWidget(self.info_label)
         
-        self.table = QTableWidget(0, 6)
+        self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels([
             self.trans.get("proto"), self.trans.get("pid"), 
             self.trans.get("process_name"), self.trans.get("local_addr"), 
-            self.trans.get("remote_addr"), self.trans.get("status")
+            self.trans.get("remote_addr"), self.trans.get("status"),
+            self.trans.get("actions")
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setStyleSheet("background-color: #313244; color: #cdd6f4;")
@@ -102,9 +103,24 @@ class NetworkView(QWidget):
                     item.setForeground(QColor("#fab387")) # Orange
                 
                 self.table.setItem(i, 5, item)
+
+                # Actions
+                if conn.pid:
+                    btn_kill = QPushButton(self.trans.get("kill_process"))
+                    btn_kill.setStyleSheet("background-color: #f38ba8; color: #11111b; font-size: 10px; border-radius: 3px;")
+                    btn_kill.clicked.connect(lambda _, p=conn.pid: self.kill_connection_process(p))
+                    self.table.setCellWidget(i, 6, btn_kill)
                 
         except Exception as e:
             # Silently fail if psutil has issues, or log it
+            pass
+
+    def kill_connection_process(self, pid):
+        try:
+            p = psutil.Process(pid)
+            p.terminate()
+            QTimer.singleShot(500, self.refresh_connections)
+        except Exception:
             pass
 
     def apply_theme(self, dark=True):

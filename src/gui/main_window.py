@@ -23,6 +23,13 @@ from gui.network_view import NetworkView
 from gui.shredder_view import ShredderView
 from gui.vault_view import VaultView
 from gui.privacy_view import PrivacyView
+from gui.cleaner_view import CleanerView
+from gui.audit_view import AuditView
+from gui.startup_view import StartupView
+from gui.app_manager_view import AppManagerView
+from gui.task_manager_view import TaskManagerView
+
+from modules.usb_guardian import USBGuardianLogic
 
 # ─────────────────────────────────────────────────────────
 #  Theming helper
@@ -128,13 +135,28 @@ class ModernSidebar(QFrame):
         self.btn_security = QPushButton(f"🔒 {self.trans.get('security_tools')}")
         self.btn_security.setCheckable(True)
 
+        self.btn_cleaner = QPushButton(f"🧹 {self.trans.get('system_hygiene')}")
+        self.btn_cleaner.setCheckable(True)
+
+        self.btn_audit = QPushButton(f"📋 {self.trans.get('security_audit')}")
+        self.btn_audit.setCheckable(True)
+
+        self.btn_startup = QPushButton(f"🚀 {self.trans.get('startup_manager')}")
+        self.btn_startup.setCheckable(True)
+
+        self.btn_apps = QPushButton(f"📦 {self.trans.get('app_manager')}")
+        self.btn_apps.setCheckable(True)
+
+        self.btn_tasks = QPushButton(f"📊 {self.trans.get('task_manager')}")
+        self.btn_tasks.setCheckable(True)
+
         self.btn_settings = QPushButton(f"⚙ {self.trans.get('settings')}")
         self.btn_settings.setCheckable(True)
 
         for btn in [self.btn_dashboard, self.btn_scan, self.btn_quarantine]:
             layout.addWidget(btn)
         layout.addWidget(self.sep_label)
-        for btn in [self.btn_network, self.btn_security]:
+        for btn in [self.btn_network, self.btn_security, self.btn_cleaner, self.btn_audit, self.btn_startup, self.btn_apps, self.btn_tasks]:
             layout.addWidget(btn)
         layout.addStretch()
         layout.addWidget(self.btn_settings)
@@ -147,7 +169,8 @@ class ModernSidebar(QFrame):
     @property
     def _all_nav_btns(self):
         return [self.btn_dashboard, self.btn_scan, self.btn_quarantine,
-                self.btn_network, self.btn_security, self.btn_settings]
+                self.btn_network, self.btn_security, self.btn_cleaner,
+                self.btn_audit, self.btn_startup, self.btn_apps, self.btn_tasks, self.btn_settings]
 
     def apply_theme(self, dark=True):
         c = DARK if dark else LIGHT
@@ -166,6 +189,11 @@ class ModernSidebar(QFrame):
         self.btn_quarantine.setText(f"🛡 {self.trans.get('quarantine')}")
         self.btn_network.setText(f"🌐 {self.trans.get('active_connections')}")
         self.btn_security.setText(f"🔒 {self.trans.get('security_tools')}")
+        self.btn_cleaner.setText(f"🧹 {self.trans.get('system_hygiene')}")
+        self.btn_audit.setText(f"📋 {self.trans.get('security_audit')}")
+        self.btn_startup.setText(f"🚀 {self.trans.get('startup_manager')}")
+        self.btn_apps.setText(f"📦 {self.trans.get('app_manager')}")
+        self.btn_tasks.setText(f"📊 {self.trans.get('task_manager')}")
         self.btn_settings.setText(f"⚙ {self.trans.get('settings')}")
 
 
@@ -612,6 +640,9 @@ class MainWindow(QMainWindow):
         self.resize(1200, 780)
         self.setAcceptDrops(True)
 
+        self.usb_guardian = USBGuardianLogic(callback=self.on_usb_detected)
+        self.usb_guardian.start_monitoring()
+
         # App Icon
         icon_path = os.path.join(os.path.expanduser("~"), "Masaüstü", "clamapp.png")
         if os.path.exists(icon_path):
@@ -666,16 +697,33 @@ class MainWindow(QMainWindow):
         # --- Settings view ---
         self.settings_view = SettingsView(self.wrapper, self.trans)
 
+        # --- New Expanded Modules ---
+        self.cleaner_view = CleanerView(self.trans)
+        self.audit_view = AuditView(self.trans, self.wrapper.data_manager)
+        self.startup_view = StartupView(self.trans)
+        self.app_manager_view = AppManagerView(self.trans)
+        self.task_manager_view = TaskManagerView(self.trans)
+
         # Add all sections to content_area (unified stack)
         # Indices:
         #   0 = antivirus_stack
         #   1 = network_view
         #   2 = security_tabs
         #   3 = settings_view
+        #   4 = cleaner_view
+        #   5 = audit_view
+        #   6 = startup_view
+        #   7 = app_manager_view
+        #   8 = task_manager_view
         self.content_area.addWidget(self.antivirus_stack)  # 0
         self.content_area.addWidget(self.network_view)     # 1
         self.content_area.addWidget(self.security_tabs)    # 2
         self.content_area.addWidget(self.settings_view)    # 3
+        self.content_area.addWidget(self.cleaner_view)     # 4
+        self.content_area.addWidget(self.audit_view)       # 5
+        self.content_area.addWidget(self.startup_view)     # 6
+        self.content_area.addWidget(self.app_manager_view) # 7
+        self.content_area.addWidget(self.task_manager_view) # 8
 
         # Wire up sidebar buttons
         self.sidebar.btn_dashboard.clicked.connect(lambda: self._show_antivirus(0))
@@ -684,6 +732,11 @@ class MainWindow(QMainWindow):
         self.sidebar.btn_network.clicked.connect(lambda: self._show_section(1))
         self.sidebar.btn_security.clicked.connect(lambda: self._show_section(2))
         self.sidebar.btn_settings.clicked.connect(lambda: self._show_settings())
+        self.sidebar.btn_cleaner.clicked.connect(lambda: self._show_extra_section(4))
+        self.sidebar.btn_audit.clicked.connect(lambda: self._show_extra_section(5))
+        self.sidebar.btn_startup.clicked.connect(lambda: self._show_extra_section(6))
+        self.sidebar.btn_apps.clicked.connect(lambda: self._show_extra_section(7))
+        self.sidebar.btn_tasks.clicked.connect(lambda: self._show_extra_section(8))
 
         # Wire up scan buttons
         self.results_view.btn_back.clicked.connect(lambda: self._show_antivirus(1))
@@ -736,6 +789,11 @@ class MainWindow(QMainWindow):
         self.vault_view.apply_theme(dark)
         self.privacy_view.apply_theme(dark)
         self.network_view.apply_theme(dark)
+        self.cleaner_view.apply_theme(dark)
+        self.audit_view.apply_theme(dark)
+        self.startup_view.apply_theme(dark)
+        self.app_manager_view.apply_theme(dark)
+        self.task_manager_view.apply_theme(dark)
         # Background of content area and stacked widgets
         for w in [self.content_area, self.antivirus_stack]:
             apply_palette(w, c)
@@ -769,6 +827,11 @@ class MainWindow(QMainWindow):
         self.vault_view.retranslate()
         self.privacy_view.retranslate()
         self.network_view.retranslate()
+        self.cleaner_view.retranslate()
+        self.audit_view.retranslate()
+        self.startup_view.retranslate()
+        self.app_manager_view.retranslate()
+        self.task_manager_view.retranslate()
         self.security_tabs.setTabText(0, self.trans.get("password_gen"))
         self.security_tabs.setTabText(1, self.trans.get("cipher_tool"))
         self.security_tabs.setTabText(2, self.trans.get("hash_tool"))
@@ -805,6 +868,26 @@ class MainWindow(QMainWindow):
         btn.blockSignals(True)
         btn.setChecked(True)
         btn.blockSignals(False)
+
+    def _show_extra_section(self, content_index):
+        self._uncheck_all_sidebar()
+        self.content_area.setCurrentIndex(content_index)
+        btn_map = {4: self.sidebar.btn_cleaner, 5: self.sidebar.btn_audit, 
+                   6: self.sidebar.btn_startup, 7: self.sidebar.btn_apps,
+                   8: self.sidebar.btn_tasks}
+        btn = btn_map.get(content_index)
+        if btn:
+            btn.blockSignals(True)
+            btn.setChecked(True)
+            btn.blockSignals(False)
+
+    def on_usb_detected(self, mount_point):
+        reply = QMessageBox.question(self, self.trans.get("usb_detected"),
+                                     self.trans.get("usb_scan_ask").format(mount_point),
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            self._show_antivirus(1)
+            self.run_scan(mount_point, "USB")
 
     def _show_settings(self):
         self._uncheck_all_sidebar()

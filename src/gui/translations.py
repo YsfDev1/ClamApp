@@ -124,6 +124,43 @@ class Translations:
             "extracted_metadata": "Extracted Metadata",
             "sanitize": "SANITIZE (Remove Metadata)",
             "sanitized_msg": "Image sanitized. Re-select the file to inspect the sanitized version.",
+            # --- USB Guardian ---
+            "usb_guardian": "USB Guardian",
+            "usb_detected": "New USB Detected",
+            "usb_scan_ask": "A new USB drive was detected at {}. Would you like to scan it for threats?",
+            # --- System Hygiene ---
+            "system_hygiene": "System Hygiene",
+            "cleaner_ready": "Ready to scan your system for clutter (Caches, Temp files, Logs).",
+            "cleaner_scan": "Scan (Dry Run)",
+            "cleaner_clean": "Clean System",
+            "cleaner_scanning": "Scanning...",
+            "cleaner_cleaning": "Cleaning...",
+            # --- Security Audit ---
+            "security_audit": "Security Audit",
+            "rerun_audit": "Re-Run Audit",
+            "sec_score": "Security Score",
+            "ufw_status": "Firewall (UFW)",
+            "ssh_status": "SSH Port (22)",
+            "scan_age": "Last Scan",
+            "update_status": "System Updates",
+            # --- Startup Manager ---
+            "startup_manager": "Startup Manager",
+            "disable_item": "Disable Selected",
+            "startup_info": "Review applications that start automatically with your system.",
+            # --- App Manager ---
+            "app_manager": "App Manager",
+            "search_apps_hint": "Search installed packages...",
+            "app_properties": "Package Properties",
+            # --- Task Manager ---
+            "task_manager": "Task Manager",
+            "kill_process": "Kill Process",
+            "cpu": "CPU",
+            "memory": "Memory",
+            "user": "User",
+            "pid": "PID",
+            "process_name": "Process Name",
+            "end_task": "End Task",
+            "auto_refresh_task": "Auto-refreshing every 2 seconds",
         },
         "tr": {
             # --- Sidebar ---
@@ -173,8 +210,8 @@ class Translations:
             "ignore": "Yoksay",
             "close": "Kapat",
             # --- Settings ---
-            "settings_title": "Ayarlar ve Güncellemeler",
-            "update_db": "Veritabanını Şimdi Güncelle",
+            "settings_title": "Ayarlar",
+            "update_db": "Veritabanını Güncelle",
             "updating": "Güncelleniyor...",
             "language": "Dil",
             "theme": "Tema",
@@ -249,6 +286,43 @@ class Translations:
             "extracted_metadata": "Ayıklanan Meta Veriler",
             "sanitize": "TEMİZLE (Meta Verileri Kaldır)",
             "sanitized_msg": "Resim temizlendi. Temizlenmiş versiyonu incelemek için dosyayı tekrar seçin.",
+            # --- USB Guardian ---
+            "usb_guardian": "USB Koruyucusu",
+            "usb_detected": "Yeni USB Algılandı",
+            "usb_scan_ask": "{} konumunda yeni bir USB sürücü algılandı. Tehditlere karşı taramak ister misiniz?",
+            # --- System Hygiene ---
+            "system_hygiene": "Sistem Temizliği",
+            "cleaner_ready": "Sisteminizi gereksiz dosyalar (Önbellek, Geçici dosyalar, Günlükler) için taramaya hazır.",
+            "cleaner_scan": "Tara (Önizleme)",
+            "cleaner_clean": "Sistemi Temizle",
+            "cleaner_scanning": "Taranıyor...",
+            "cleaner_cleaning": "Temizleniyor...",
+            # --- Security Audit ---
+            "security_audit": "Güvenlik Denetimi",
+            "rerun_audit": "Denetimi Yeniden Çalıştır",
+            "sec_score": "Güvenlik Puanı",
+            "ufw_status": "Güvenlik Duvarı (UFW)",
+            "ssh_status": "SSH Portu (22)",
+            "scan_age": "Son Tarama",
+            "update_status": "Sistem Güncellemeleri",
+            # --- Startup Manager ---
+            "startup_manager": "Başlangıç Yönetimi",
+            "disable_item": "Seçileni Devre Dışı Bırak",
+            "startup_info": "Sisteminizle birlikte otomatik olarak başlayan uygulamaları inceleyin.",
+            # --- App Manager ---
+            "app_manager": "Uygulama Yöneticisi",
+            "search_apps_hint": "Yüklü paketlerde ara...",
+            "app_properties": "Paket Özellikleri",
+            # --- Task Manager ---
+            "task_manager": "Görev Yöneticisi",
+            "kill_process": "Süreci Öldür",
+            "cpu": "İŞLEMCİ",
+            "memory": "BELLEK",
+            "user": "Kullanıcı",
+            "pid": "PID",
+            "process_name": "Süreç Adı",
+            "end_task": "Görevi Sonlandır",
+            "auto_refresh_task": "2 saniyede bir otomatik yenileniyor",
         }
     }
 
