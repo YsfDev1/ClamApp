@@ -223,15 +223,7 @@ Please do **not** commit `app_data.json` or anything inside `quarantine/` — bo
 ClamAV® is a registered trademark of Cisco Systems, Inc. This project is not affiliated with or endorsed by Cisco.
 =======
 
-A modern and user friendly security app that Integrated with ClamAV engine.
-
-# 🛡️ ClamApp: Advanced Security Suite for Linux
-
-**ClamApp** is an open-source, modern security management interface built on top of the trusted **ClamAV** engine. Designed with a focus on simplicity and modern aesthetics, it brings robust malware protection to Linux desktop users through an intuitive graphical experience.
-
 **Built on:** Pardus 25
 
 
-
----
 
