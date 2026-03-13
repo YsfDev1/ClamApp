@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="assets/icons/clamapp.png" alt="ClamApp logo" width="120" />
+  <img src="assets/icons/IMG_20260312_220236.png" alt="ClamApp logo" width="250" />
 </p>
+
 
 <h1 align="center">ClamApp</h1>
 <p align="center">
@@ -220,4 +221,9 @@ Please do **not** commit `app_data.json` or anything inside `quarantine/` — bo
 **GPL-3.0-or-later** — see [LICENSE](LICENSE) for full text.
 
 ClamAV® is a registered trademark of Cisco Systems, Inc. This project is not affiliated with or endorsed by Cisco.
+=======
+
+**Built on:** Pardus 25
+
+
 
