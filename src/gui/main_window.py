@@ -2,14 +2,14 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel, QFrame, QStackedWidget,
                              QProgressBar, QMessageBox, QFileDialog, QTableWidget,
                              QTableWidgetItem, QHeaderView, QComboBox, QDialog, QTextEdit,
-                             QTabWidget, QSplitter, QSizePolicy)
+                             QTabWidget, QSplitter, QSizePolicy, QPlainTextEdit,
+                             QProgressDialog)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QDateTime
 from PyQt6.QtGui import QFont, QIcon, QColor, QDragEnterEvent, QDropEvent, QPalette
 import os
 import sys
 import stat
 
-<<<<<<< HEAD
 
 # ─────────────────────────────────────────────────────────
 #  DB Update Thread — runs freshclam off the GUI thread
@@ -28,8 +28,7 @@ class DbUpdateThread(QThread):
         except Exception as exc:
             self.finished.emit({"status": "error", "message": str(exc)})
 
-=======
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+
 if os.path.dirname(os.path.dirname(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -87,25 +86,50 @@ def apply_palette(widget, c):
 #  Code Viewer Dialog
 # ─────────────────────────────────────────────────────────
 class CodeViewerDialog(QDialog):
-    def __init__(self, title, content, translations, parent=None):
+    def __init__(self, title, content, translations, is_binary=False, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.resize(600, 400)
+        self.resize(800, 600)
         self.setStyleSheet("background-color: #1e1e2e; color: #cdd6f4;")
+        
         layout = QVBoxLayout(self)
-        warn = QLabel(translations.get("safe_viewer_warn"))
-        warn.setWordWrap(True)
-        warn.setStyleSheet("color: #f38ba8; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(warn)
-        te = QTextEdit()
-        te.setReadOnly(True)
-        te.setPlainText(content)
-        te.setStyleSheet("background-color: #181825; border: 1px solid #45475a; font-family: monospace;")
-        layout.addWidget(te)
-        btn = QPushButton(translations.get("close"))
-        btn.setStyleSheet("background-color: #45475a; color: #cdd6f4; padding: 10px; border-radius: 5px;")
-        btn.clicked.connect(self.accept)
-        layout.addWidget(btn)
+        
+        if is_binary:
+            warn = QLabel(f"⚠ {translations.get('binary_file_detected')}")
+            warn.setWordWrap(True)
+            warn.setStyleSheet("color: #fab387; font-weight: bold; margin-bottom: 5px;")
+            layout.addWidget(warn)
+        else:
+            warn = QLabel(translations.get("safe_viewer_warn"))
+            warn.setWordWrap(True)
+            warn.setStyleSheet("color: #f38ba8; font-weight: bold; margin-bottom: 10px;")
+            layout.addWidget(warn)
+            
+        self.te = QPlainTextEdit()
+        self.te.setReadOnly(True)
+        self.te.setPlainText(content)
+        self.te.setStyleSheet("background-color: #181825; border: 1px solid #45475a; font-family: 'Courier New', monospace; font-size: 13px;")
+        layout.addWidget(self.te)
+        
+        btn_layout = QHBoxLayout()
+        
+        self.btn_copy = QPushButton(translations.get("copy"))
+        self.btn_copy.setStyleSheet("background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 10px; border-radius: 5px;")
+        self.btn_copy.clicked.connect(self._copy_to_clipboard)
+        btn_layout.addWidget(self.btn_copy)
+        
+        btn_close = QPushButton(translations.get("close"))
+        btn_close.setStyleSheet("background-color: #45475a; color: #cdd6f4; padding: 10px; border-radius: 5px;")
+        btn_close.clicked.connect(self.accept)
+        btn_layout.addWidget(btn_close)
+        
+        layout.addLayout(btn_layout)
+
+    def _copy_to_clipboard(self):
+        from PyQt6.QtWidgets import QApplication
+        QApplication.clipboard().setText(self.te.toPlainText())
+        self.btn_copy.setText(f"✓ {self.btn_copy.text()}")
+        QTimer.singleShot(2000, lambda: self.btn_copy.setText(self.btn_copy.text().replace("✓ ", "")))
 
 
 # ─────────────────────────────────────────────────────────
@@ -942,12 +966,10 @@ class MainWindow(QMainWindow):
         self.scan_view.progress_bar.setRange(0, 0)
         self.scanner_thread = ScannerThread(self.wrapper.clamscan_path, path)
         self.scanner_thread.finished.connect(self.on_scan_finished)
-<<<<<<< HEAD
         self.scanner_thread.progress.connect(
             lambda msg: self.scan_view.progress_label.setText(msg[:120])
         )
-=======
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+
         self.scanner_thread.start()
 
     def on_scan_finished(self, results):
@@ -968,7 +990,6 @@ class MainWindow(QMainWindow):
     # ── Quarantine ─────────────────────────────────────────────────────────
 
     def quarantine_all_results(self):
-<<<<<<< HEAD
         failed = []
         succeeded = 0
         for f in self.current_infected:
@@ -1019,47 +1040,64 @@ class MainWindow(QMainWindow):
         except (OSError, PermissionError) as exc:
             QMessageBox.warning(self, "Permission Error",
                                 f"Could not delete file: {exc}")
-=======
-        for f in self.current_infected:
-            # Secure the quarantined file: move then strip executable permissions
-            success = self.wrapper.data_manager.quarantine_file(f)
-            if success:
-                q_items = self.wrapper.data_manager.data["quarantine"]
-                if q_items:
-                    q_path = q_items[-1]["quarantine_path"]
-                    try:
-                        # Strip all execute bits and make it read-only
-                        os.chmod(q_path, stat.S_IRUSR)
-                    except Exception:
-                        pass
-        self.quarantine_view.refresh()
-        QMessageBox.information(self, "Success", "Items moved to quarantine. Execute permissions stripped.")
-        self._show_antivirus(3)
 
-    def restore_file(self, id):
-        if self.wrapper.data_manager.restore_file(id):
-            self.quarantine_view.refresh()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to restore file.")
-
-    def delete_file(self, id):
-        if self.wrapper.data_manager.delete_permanently(id):
-            self.quarantine_view.refresh()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to delete file.")
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
 
     def view_code(self, path):
-        content = self.wrapper.get_file_content(path)
-        dlg = CodeViewerDialog(self.trans.get("safe_viewer"), content, self.trans)
-        dlg.exec()
+        if not os.path.exists(path):
+            QMessageBox.warning(self, "Error", "File not found.")
+            return
+
+        size_bytes = os.path.getsize(path)
+        size_mb = size_bytes / (1024 * 1024)
+        limit = None
+        
+        if size_bytes > 1024 * 1024:
+            # Large file handling
+            msg = f"This file is large ({size_mb:.2f} MB). Loading it completely might freeze the application. " \
+                  f"Would you like to load the first 100KB (Preview) or the Whole File?"
+            
+            box = QMessageBox(self)
+            box.setWindowTitle(self.trans.get("large_file"))
+            box.setText(msg)
+            btn_preview = box.addButton("Preview (100KB)", QMessageBox.ButtonRole.ActionRole)
+            btn_whole = box.addButton("Whole File", QMessageBox.ButtonRole.ActionRole)
+            btn_cancel = box.addButton(QMessageBox.StandardButton.Cancel)
+            
+            box.exec()
+            
+            if box.clickedButton() == btn_preview:
+                limit = 100 * 1024
+            elif box.clickedButton() == btn_whole:
+                limit = None
+            else:
+                return
+
+        # Show progress if it's large and we are loading the whole thing
+        if limit is None and size_bytes > 2 * 1024 * 1024:
+            progress = QProgressDialog("Loading file content...", None, 0, 0, self)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.show()
+            QApplication.processEvents()
+
+        success, content, is_binary = self.wrapper.data_manager.secure_read_file(path, limit=limit)
+        
+        if success:
+            dlg = CodeViewerDialog(
+                self.trans.get("safe_viewer") + f" - {os.path.basename(path)}", 
+                content, 
+                self.trans, 
+                is_binary=is_binary, 
+                parent=self
+            )
+            dlg.exec()
+        else:
+            QMessageBox.warning(self, "Error", content)
 
     # ── DB Update ───────────────────────────────────────────────────────────
 
     def run_update(self):
         self.settings_view.btn_update_db.setText(self.trans.get("updating"))
         self.settings_view.btn_update_db.setDisabled(True)
-<<<<<<< HEAD
         self._db_thread = DbUpdateThread(self.wrapper, parent=self)
         self._db_thread.finished.connect(self._on_update_finished)
         self._db_thread.start()
@@ -1074,16 +1112,7 @@ class MainWindow(QMainWindow):
         self.dashboard.db_label.setText(
             f"{self.trans.get('last_update')}: {self.wrapper.get_database_info()}"
         )
-=======
-        res = self.wrapper.update_database()
-        if res["status"] == "success":
-            QMessageBox.information(self, "Update", res["message"])
-        else:
-            QMessageBox.warning(self, "Update", res["message"])
-        self.settings_view.btn_update_db.setText(self.trans.get("update_db"))
-        self.settings_view.btn_update_db.setDisabled(False)
-        self.dashboard.db_label.setText(f"{self.trans.get('last_update')}: {self.wrapper.get_database_info()}")
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+
 
     # ── Stop Scan ───────────────────────────────────────────────────────────
 

@@ -1,29 +1,50 @@
 {
     "stats": {
-        "total_scans": 5,
-        "threats_found": 5,
-        "objects_scanned": 500
+        "total_scans": 8,
+        "threats_found": 8,
+        "objects_scanned": 800
     },
     "quarantine": [],
     "scan_history": [
         {
+            "date": "2026-03-13 18:15:13",
+            "type": "Custom",
+            "path": "/home/yusuf/Masaüstü/testv",
+            "threats": 1,
+            "objects": 100
+        },
+        {
+            "date": "2026-03-13 18:08:56",
+            "type": "Custom",
+            "path": "/home/yusuf/Masaüstü/testv",
+            "threats": 1,
+            "objects": 100
+        },
+        {
+            "date": "2026-03-13 17:58:25",
+            "type": "Custom",
+            "path": "/home/yusuf/Masaüstü/testv",
+            "threats": 1,
+            "objects": 100
+        },
+        {
             "date": "2026-03-12 10:10:10",
             "type": "Custom",
-            "path": "/home/yusuf/Masa\u00fcst\u00fc/ClamApp/tests/eicar",
+            "path": "/home/yusuf/Masaüstü/ClamApp/tests/eicar",
             "threats": 1,
             "objects": 100
         },
         {
             "date": "2026-03-12 10:09:36",
             "type": "Custom",
-            "path": "/home/yusuf/Masa\u00fcst\u00fc/virus",
+            "path": "/home/yusuf/Masaüstü/virus",
             "threats": 0,
             "objects": 100
         },
         {
             "date": "2026-03-08 16:09:35",
             "type": "Custom",
-            "path": "/home/yusuf/Masa\u00fcst\u00fc/virus",
+            "path": "/home/yusuf/Masaüstü/virus",
             "threats": 2,
             "objects": 100
         }

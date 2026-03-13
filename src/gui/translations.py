@@ -161,6 +161,8 @@ class Translations:
             "process_name": "Process Name",
             "end_task": "End Task",
             "auto_refresh_task": "Auto-refreshing every 2 seconds",
+            "binary_file_detected": "Binary file detected. Content may be unreadable.",
+            "large_file": "Large File",
         },
         "tr": {
             # --- Sidebar ---
@@ -323,6 +325,8 @@ class Translations:
             "process_name": "Süreç Adı",
             "end_task": "Görevi Sonlandır",
             "auto_refresh_task": "2 saniyede bir otomatik yenileniyor",
+            "binary_file_detected": "İkili dosya algılandı. İçerik okunamaz olabilir.",
+            "large_file": "Büyük Dosya",
         }
     }
 

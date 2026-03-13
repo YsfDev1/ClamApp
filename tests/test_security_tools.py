@@ -2,10 +2,8 @@ import unittest
 import os
 import sys
 import shutil
-<<<<<<< HEAD
 import json
-=======
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -13,10 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from backend.data_shredder import DataShredder
 from backend.crypto_vault import CryptoVault
 from backend.privacy_shield import PrivacyShield
-<<<<<<< HEAD
 from backend.data_manager import DataManager
-=======
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+
 
 class TestSecurityTools(unittest.TestCase):
     def setUp(self):
@@ -64,7 +60,6 @@ class TestSecurityTools(unittest.TestCase):
         # But we primarily want to ensure the logic exists and doesn't crash.
         pass
 
-<<<<<<< HEAD
 
 class TestSecureQuarantine(unittest.TestCase):
     """Tests for the new secure_quarantine / restore_file workflow."""
@@ -144,8 +139,25 @@ class TestSecureQuarantine(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn('not found', msg.lower())
 
+    def test_secure_read_file(self):
+        """Test reading a 0o000 file safely."""
+        self.dm.secure_quarantine(self.victim)
+        q_item = self.dm.data['quarantine'][-1]
+        q_path = q_item['quarantine_path']
 
-=======
->>>>>>> 73509aa6811d1fca4ec74cabe02169f57473617b
+        # Verify it's locked
+        mode = oct(os.stat(q_path).st_mode & 0o777)
+        self.assertEqual(mode, oct(0o000))
+
+        # Secure read
+        success, content, is_binary = self.dm.secure_read_file(q_path)
+        self.assertTrue(success)
+        self.assertIn('EICAR', content)
+        self.assertFalse(is_binary)
+
+        # Verify it's locked AGAIN after reading
+        mode_after = oct(os.stat(q_path).st_mode & 0o777)
+        self.assertEqual(mode_after, oct(0o000))
+
 if __name__ == '__main__':
     unittest.main()
