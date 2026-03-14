@@ -218,7 +218,7 @@ Please do **not** commit `app_data.json` or anything inside `quarantine/` — bo
 
 ## License
 
-**GPL-3.0-or-later** — see [LICENSE](LICENSE) for full text.
+**GPL 3.0 — see [LICENSE](LICENSE) for full text.
 
 ClamAV® is a registered trademark of Cisco Systems, Inc. This project is not affiliated with or endorsed by Cisco.
 =======
