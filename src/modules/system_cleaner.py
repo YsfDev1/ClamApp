@@ -9,12 +9,25 @@ class SystemCleanerLogic:
     @staticmethod
     def get_targets():
         home = os.path.expanduser("~")
-        return {
+        targets = {
             "Browser Cache (Firefox)": glob.glob(os.path.join(home, ".mozilla/firefox/*.default-release/cache2/*")),
             "Browser Cache (Chrome)": glob.glob(os.path.join(home, ".cache/google-chrome/Default/Cache/*")),
             "System Temp": glob.glob("/tmp/*"),
             "User Logs": glob.glob(os.path.join(home, "**/*.log"), recursive=True),
+            "APT Cache": glob.glob("/var/cache/apt/archives/*.deb"),
         }
+        
+        # Add empty log files
+        empty_logs = []
+        for log_file in targets["User Logs"]:
+            try:
+                if os.path.isfile(log_file) and os.path.getsize(log_file) == 0:
+                    empty_logs.append(log_file)
+            except Exception:
+                continue
+        targets["Empty Log Files"] = empty_logs
+        
+        return targets
 
     @staticmethod
     def scan():

@@ -74,7 +74,9 @@ class AuditView(QWidget):
         self.add_check(0, 0, "Firewall (UFW)", "ufw_status")
         self.add_check(0, 1, "SSH Port (22)", "ssh_status")
         self.add_check(1, 0, "Last Scan", "scan_age")
-        self.add_check(1, 1, "System Updates", "update_status")
+        self.add_check(1, 1, "Root Login", "root_login")
+        self.add_check(2, 0, "Shadow Permissions", "shadow_perms")
+        self.add_check(2, 1, "Risky Open Ports", "open_ports")
 
         layout.addLayout(self.grid)
 
@@ -125,8 +127,15 @@ class AuditView(QWidget):
         self.lbl_scan_age.setText(f"{days} days ago" if days < 999 else "Never")
         self.lbl_scan_age.setStyleSheet(f"color: {'#a6e3a1' if days <= 7 else '#f38ba8'}; font-weight: bold;")
         
-        self.lbl_update_status.setText("Up to date (mock)")
-        self.lbl_update_status.setStyleSheet("color: #a6e3a1; font-weight: bold;")
+        self.lbl_root_login.setText("Disabled" if res["root_login"] else "ENABLED (Risky)")
+        self.lbl_root_login.setStyleSheet(f"color: {'#a6e3a1' if res['root_login'] else '#f38ba8'}; font-weight: bold;")
+
+        self.lbl_shadow_perms.setText("Secure" if res["shadow_perms"] else "INSECURE")
+        self.lbl_shadow_perms.setStyleSheet(f"color: {'#a6e3a1' if res['shadow_perms'] else '#f38ba8'}; font-weight: bold;")
+
+        open_ports = res["open_ports"]
+        self.lbl_open_ports.setText("None" if not open_ports else f"Open: {open_ports}")
+        self.lbl_open_ports.setStyleSheet(f"color: {'#a6e3a1' if not open_ports else '#f38ba8'}; font-weight: bold;")
 
         self.btn_refresh.setEnabled(True)
 
