@@ -5,7 +5,7 @@
 
 <h1 align="center">ClamApp</h1>
 <p align="center">
-  <strong>A professional, open-source ClamAV GUI for Linux</strong><br>
+  <strong>A professional, open-source ClamAV integrated security app for Linux</strong><br>
   Real-time threat detection · Secure quarantine · Network monitoring · Security toolkit
 </p>
 
