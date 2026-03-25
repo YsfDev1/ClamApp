@@ -58,17 +58,17 @@ class NetworkView(QWidget):
         header.addWidget(self.btn_refresh)
         layout.addLayout(header)
 
-        self.info_label = QLabel(self.trans.get("auto_refresh_5s"))
-        self.info_label.setStyleSheet("color: #585b70; font-style: italic; margin-bottom: 10px;")
+        self.info_label = QLabel()
+        self.info_label.setStyleSheet("color: #bac2de; font-size: 13px; font-weight: bold; margin-bottom: 5px;")
         layout.addWidget(self.info_label)
 
-        self.table = QTableWidget(0, 7)
+        self.table = QTableWidget(0, 8)
         self.table.setHorizontalHeaderLabels([
             self.trans.get("proto"), self.trans.get("pid"),
             self.trans.get("process_name"), self.trans.get("local_addr"),
             self.trans.get("remote_addr"), self.trans.get("status"),
+            self.trans.get("bandwidth") or "Bandwidth",
             self.trans.get("actions"),
-
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setStyleSheet("background-color: #313244; color: #cdd6f4;")
@@ -100,9 +100,21 @@ class NetworkView(QWidget):
     # ── Slot: called on GUI thread via signal (safe for QTableWidget) ──────
 
     def _update_table(self, connections: list):
-        self.table.setRowCount(len(connections))
-        c = self._colors()
+        if not connections:
+            self.info_label.setText("No active connections.")
+            return
 
+        # Update global stats from first connection (shared among all)
+        total_up = connections[0].get("global_up", 0)
+        total_down = connections[0].get("global_down", 0)
+        
+        def fmt_speed(s):
+            if s > 1024*1024: return f"{s/1024/1024:.1f} MB/s"
+            return f"{s/1024:.1f} KB/s"
+            
+        self.info_label.setText(f"Total Traffic:  ↑ {fmt_speed(total_up)}   ↓ {fmt_speed(total_down)}")
+
+        self.table.setRowCount(len(connections))
         for i, conn in enumerate(connections):
             self.table.setItem(i, 0, QTableWidgetItem(conn["proto"]))
             self.table.setItem(i, 1, QTableWidgetItem(conn["pid"]))
@@ -114,16 +126,20 @@ class NetworkView(QWidget):
             status_item.setForeground(self._status_color(conn["status"]))
             self.table.setItem(i, 5, status_item)
 
+            bw_item = QTableWidgetItem(conn.get("bandwidth", "—"))
+            bw_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(i, 6, bw_item)
+
             # Kill-process button only when pid is known
             pid_str = conn.get("pid", "—")
             if pid_str and pid_str != "—":
                 btn_kill = QPushButton(self.trans.get("kill_process"))
                 btn_kill.setStyleSheet(
-                    f"background-color: #f38ba8; color: #11111b;"
-                    f" font-size: 10px; border-radius: 3px; padding: 2px;"
+                    f"background-color: #f38ba8; color: #11111b; font-weight: bold;"
+                    f" font-size: 10px; border-radius: 4px; padding: 4px;"
                 )
                 btn_kill.clicked.connect(lambda _, p=int(pid_str): self._kill_process(p))
-                self.table.setCellWidget(i, 6, btn_kill)
+                self.table.setCellWidget(i, 7, btn_kill)
 
     def _on_monitor_error(self, message: str):
         self.table.setRowCount(1)
@@ -196,11 +212,12 @@ class NetworkView(QWidget):
     def retranslate(self):
         self.title.setText(self.trans.get("active_connections"))
         self.btn_refresh.setText(self.trans.get("refresh"))
-        self.info_label.setText(self.trans.get("auto_refresh_5s"))
+        # Total statistics are updated in _update_table
         self.table.setHorizontalHeaderLabels([
             self.trans.get("proto"), self.trans.get("pid"),
             self.trans.get("process_name"), self.trans.get("local_addr"),
             self.trans.get("remote_addr"), self.trans.get("status"),
+            self.trans.get("bandwidth") or "Bandwidth",
             self.trans.get("actions"),
         ])
 

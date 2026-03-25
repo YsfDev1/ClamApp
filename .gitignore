@@ -1,11 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-#  ClamApp — .gitignore
+# --- ClamApp Local Config & Logs ---
+settings.json
+app_data.json
+*.log
+logs/
+.config/clamapp/
+quarantine/
 #  SECURITY: quarantine dir and app_data.json MUST never be
 #  committed (they may contain malware or personal data paths).
 # ─────────────────────────────────────────────────────────────
 
 # ── Runtime / local data (SECURITY CRITICAL) ──────────────────
-quarantine/
 app_data.json
 *.meta.json
 ~/.clamapp/

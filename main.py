@@ -7,8 +7,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from gui.main_window import MainWindow
 from PyQt6.QtWidgets import QApplication
+from backend.logging_setup import setup_logging
 
 def main():
+    setup_logging()
     app = QApplication(sys.argv)
     app.setApplicationName("ClamApp")
     

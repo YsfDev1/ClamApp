@@ -12,7 +12,10 @@ Secure quarantine changes (vs original):
 import json
 import os
 import shutil
+import logging
 from datetime import datetime
+
+log = logging.getLogger(__name__)
 
 
 class DataManager:
@@ -25,7 +28,7 @@ class DataManager:
         try:
             os.makedirs(self.quarantine_dir, exist_ok=True)
         except OSError as exc:
-            print(f"[DataManager] Could not create quarantine dir: {exc}")
+            log.error("[DataManager] Could not create quarantine dir: %s", exc)
 
         # Legacy path used by earlier builds — keep reference for migration
         self._legacy_quarantine_dir = os.path.join(base_dir, "quarantine")
@@ -57,7 +60,7 @@ class DataManager:
                 self.save_data()
                 return data
             except Exception as exc:
-                print(f"[DataManager] load_data error: {exc}")
+                log.error("[DataManager] load_data error: %s", exc)
 
 
         return {
@@ -72,7 +75,7 @@ class DataManager:
             with open(self.data_file, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=4, ensure_ascii=False)
         except (OSError, PermissionError) as exc:
-            print(f"[DataManager] save_data error: {exc}")
+            log.error("[DataManager] save_data error: %s", exc)
 
 
     def add_scan_result(self, threats, objects=100, scan_type="Custom", path=""):
@@ -127,7 +130,7 @@ class DataManager:
             os.chmod(dest_path, 0o000)
         except (OSError, PermissionError) as exc:
             # Non-fatal: file is already moved out of its original location
-            print(f"[DataManager] chmod 0o000 failed for {dest_path}: {exc}")
+            log.warning("[DataManager] chmod 0o000 failed for %s: %s", dest_path, exc)
 
         # Write metadata sidecar
         meta = {
@@ -140,7 +143,7 @@ class DataManager:
             with open(meta_path, "w", encoding="utf-8") as mf:
                 json.dump(meta, mf, indent=4, ensure_ascii=False)
         except (OSError, PermissionError) as exc:
-            print(f"[DataManager] Could not write metadata sidecar: {exc}")
+            log.error("[DataManager] Could not write metadata sidecar: %s", exc)
 
         # Persist in app_data.json
         self.data["quarantine"].append({

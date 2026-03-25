@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>ClamApp</vendor>
+  <vendor_url>https://example.invalid</vendor_url>
+
+  <!--
+    This policy lets ClamApp run a constrained helper without repeated prompts.
+    You must pair this with a wrapper script (clamapp-ufw-helper) that only allows
+    safe UFW subcommands (status, logging on/off, allow/deny, delete, enable/disable).
+  -->
+
+  <action id="com.clamapp.ufw.manage">
+    <description>Manage UFW firewall via ClamApp</description>
+    <message>ClamApp needs administrator privileges to manage the firewall.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/clamapp-ufw-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>
+

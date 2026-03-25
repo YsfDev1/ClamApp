@@ -1,5 +1,9 @@
 import os
 import threading
+import logging
+
+log = logging.getLogger(__name__)
+
 try:
     import pyudev
     HAS_PYUDEV = True
@@ -17,7 +21,7 @@ class USBGuardianLogic:
 
     def start_monitoring(self):
         if not HAS_PYUDEV:
-            print("USB Guardian: pyudev not installed.")
+            log.warning("USB Guardian: pyudev not installed.")
             return
 
         self.running = True
@@ -36,13 +40,13 @@ class USBGuardianLogic:
 
         self.observer = pyudev.MonitorObserver(monitor, handle_event)
         self.observer.start()
-        print("USB Guardian: Monitoring started...")
+        log.info("USB Guardian: Monitoring started...")
 
     def stop_monitoring(self):
         if self.observer:
             self.observer.stop()
             self.running = False
-            print("USB Guardian: Monitoring stopped.")
+            log.info("USB Guardian: Monitoring stopped.")
 
     def _get_mount_point(self, device_node):
         """
@@ -55,5 +59,5 @@ class USBGuardianLogic:
                     if parts[0] == device_node:
                         return parts[1]
         except Exception as e:
-            print(f"USB Guardian: Error getting mount point: {e}")
+            log.error("USB Guardian: Error getting mount point: %s", e)
         return None

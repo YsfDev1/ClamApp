@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QTableWidgetItem, QHeaderView, QComboBox, QDialog, QTextEdit,
                              QTabWidget, QSplitter, QSizePolicy, QPlainTextEdit,
                              QProgressDialog, QScrollArea, QLineEdit, QTimeEdit)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QDateTime
-from PyQt6.QtGui import QFont, QIcon, QColor, QDragEnterEvent, QDropEvent, QPalette
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QDateTime, QUrl
+from PyQt6.QtGui import QFont, QIcon, QColor, QDragEnterEvent, QDropEvent, QPalette, QDesktopServices
 import os
 import sys
 import stat
@@ -43,12 +43,9 @@ from gui.network_view import NetworkView
 from gui.shredder_view import ShredderView
 from gui.vault_view import VaultView
 from gui.privacy_view import PrivacyView
-from gui.cleaner_view import CleanerView
-from gui.audit_view import AuditView
-from gui.startup_view import StartupView
-from gui.app_manager_view import AppManagerView
-from gui.task_manager_view import TaskManagerView
 from gui.cloud_scan_view import CloudScanView
+from gui.breach_checker_view import BreachCheckerView
+from gui.firewall_view import FirewallView
 
 from modules.usb_guardian import USBGuardianLogic
 from backend.config_manager import SettingsManager
@@ -143,16 +140,16 @@ class ModernSidebar(QFrame):
     def __init__(self, trans, parent=None):
         super().__init__(parent)
         self.trans = trans
+        self.is_dark = True
         self.setFixedWidth(200)
         self._setup()
 
     def _btn_style(self, c):
         return f"""
-            QPushButton {{ background-color: transparent; color: {c['text']};
-                border: none; padding: 10px 15px; text-align: left; font-size: 14px;
-                border-radius: 5px; margin: 2px 5px; min-height: 36px; }}
-            QPushButton:hover   {{ background-color: {c['btn_hover']}; }}
-            QPushButton:checked {{ background-color: {c['btn_checked']}; color: {c['accent']}; font-weight: bold; }}
+            QPushButton {{ background-color: transparent; color: #bac2de; border: none; 
+                          border-radius: 8px; padding: 12px; text-align: left; font-size: 14px; }}
+            QPushButton:hover {{ background-color: #313244; color: #89b4fa; }}
+            QPushButton:checked {{ background-color: #313244; color: #89b4fa; font-weight: bold; border-left: 4px solid #89b4fa; }}
         """
 
     def _setup(self):
@@ -190,20 +187,15 @@ class ModernSidebar(QFrame):
         self.btn_security = QPushButton(f"🔒 {self.trans.get('security_tools')}")
         self.btn_security.setCheckable(True)
 
-        self.btn_cleaner = QPushButton(f"🧹 {self.trans.get('system_hygiene')}")
-        self.btn_cleaner.setCheckable(True)
-
         self.btn_audit = QPushButton(f"📋 {self.trans.get('security_audit')}")
         self.btn_audit.setCheckable(True)
+        self.btn_audit.hide() # Disabled for v1.0 focus
 
-        self.btn_startup = QPushButton(f"🚀 {self.trans.get('startup_manager')}")
-        self.btn_startup.setCheckable(True)
+        self.btn_breach = QPushButton(f"🔍 {self.trans.get('breach_checker')}")
+        self.btn_breach.setCheckable(True)
 
-        self.btn_apps = QPushButton(f"📦 {self.trans.get('app_manager')}")
-        self.btn_apps.setCheckable(True)
-
-        self.btn_tasks = QPushButton(f"📊 {self.trans.get('task_manager')}")
-        self.btn_tasks.setCheckable(True)
+        self.btn_firewall = QPushButton(f"🔥 {self.trans.get('firewall_manager')}")
+        self.btn_firewall.setCheckable(True)
 
         self.btn_settings = QPushButton(f"⚙ {self.trans.get('settings')}")
         self.btn_settings.setCheckable(True)
@@ -211,21 +203,22 @@ class ModernSidebar(QFrame):
         for btn in [self.btn_dashboard, self.btn_scan, self.btn_quarantine, self.btn_schedule]:
             layout.addWidget(btn)
         layout.addWidget(self.sep_label)
-        for btn in [self.btn_network, self.btn_cloud, self.btn_security, self.btn_startup, self.btn_apps, self.btn_tasks]:
+        for btn in [self.btn_network, self.btn_cloud, self.btn_security,
+                    self.btn_audit, self.btn_breach, self.btn_firewall]:
             layout.addWidget(btn)
         layout.addStretch()
         layout.addWidget(self.btn_settings)
 
-        self.version_label = QLabel("v0.3.0")
+        self.version_label = QLabel(f"v1.0.0-{self.trans.get('stable')}")
         self.version_label.setStyleSheet("color: #585b70; padding: 10px;")
         layout.addWidget(self.version_label)
-        self.apply_theme(True)
+        self.apply_theme(self.is_dark)
 
     @property
     def _all_nav_btns(self):
         return [self.btn_dashboard, self.btn_scan, self.btn_quarantine, self.btn_schedule,
                 self.btn_network, self.btn_cloud, self.btn_security,
-                self.btn_startup, self.btn_apps, self.btn_tasks, self.btn_settings]
+                self.btn_audit, self.btn_breach, self.btn_firewall, self.btn_settings]
 
     def apply_theme(self, dark=True):
         c = DARK if dark else LIGHT
@@ -246,9 +239,9 @@ class ModernSidebar(QFrame):
         self.btn_network.setText(f"🌐 {self.trans.get('active_connections')}")
         self.btn_cloud.setText(f"☁ {self.trans.get('cloud_scan')}")
         self.btn_security.setText(f"🔒 {self.trans.get('security_tools')}")
-        self.btn_startup.setText(f"🚀 {self.trans.get('startup_manager')}")
-        self.btn_apps.setText(f"📦 {self.trans.get('app_manager')}")
-        self.btn_tasks.setText(f"📊 {self.trans.get('task_manager')}")
+        self.btn_audit.setText(f"📋 {self.trans.get('security_audit')}")
+        self.btn_breach.setText(f"🔍 {self.trans.get('breach_checker')}")
+        self.btn_firewall.setText(f"🔥 {self.trans.get('firewall_manager')}")
         self.btn_settings.setText(f"⚙ {self.trans.get('settings')}")
 
 
@@ -266,6 +259,13 @@ class DashboardView(QWidget):
         self.time_label = QLabel()
         self.time_label.setStyleSheet("color: #89b4fa; font-size: 32px; font-weight: bold; margin-bottom: 10px;")
         layout.addWidget(self.time_label, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Dashboard Status Badge
+        self.status_badge = QLabel()
+        self.status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_badge.setContentsMargins(10, 5, 10, 5)
+        self.status_badge.setStyleSheet("border-radius: 12px; font-weight: bold; padding: 5px 15px;")
+        layout.insertWidget(1, self.status_badge) # Below title
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_time)
@@ -302,6 +302,22 @@ class DashboardView(QWidget):
         self.status_card.setStyleSheet(f"background-color: {c['card']}; border-radius: 15px; padding: 20px;")
         self.status_desc.setStyleSheet(f"color: {c['text']}; font-size: 14px;")
         self.db_label.setStyleSheet(f"color: {c['subtext']}; font-size: 12px;")
+        
+        # Update Dashboard Status Badge
+        # Logic: If firewall is off OR clamscan not found -> Warning
+        parent = self.window()
+        is_secure = True
+        if hasattr(parent, "firewall_view"):
+            if not parent.firewall_view._fw_enabled:
+                is_secure = False
+        
+        if is_secure:
+            self.status_badge.setText(self.trans.get("system_status_secure"))
+            self.status_badge.setStyleSheet(f"background-color: #40a02b; color: #11111b; border-radius: 12px; font-weight: bold; padding: 5px;")
+        else:
+            self.status_badge.setText(self.trans.get("system_status_warn"))
+            self.status_badge.setStyleSheet(f"background-color: #d20f39; color: #11111b; border-radius: 12px; font-weight: bold; padding: 5px;")
+
         self.refresh_stats()
 
     def retranslate(self):
@@ -355,19 +371,14 @@ class ScrollableDashboardView(QScrollArea):
         layout.setSpacing(20)
         
         self.dashboard = DashboardView(wrapper, trans)
-        self.audit = AuditView(trans, data_manager)
-        self.cleaner = CleanerView(trans)
         
         layout.addWidget(self.dashboard)
-        layout.addWidget(self.audit)
-        layout.addWidget(self.cleaner)
+        layout.addStretch()
         
         self.setWidget(container)
 
     def apply_theme(self, dark=True):
         self.dashboard.apply_theme(dark)
-        self.audit.apply_theme(dark)
-        self.cleaner.apply_theme(dark)
         c = DARK if dark else LIGHT
         self.setStyleSheet(f"background-color: {c['bg']}; border: none;")
         self.widget().setStyleSheet(f"background-color: {c['bg']};")
@@ -419,9 +430,11 @@ class ScanView(QWidget):
         progress_layout.addWidget(self.progress_label)
 
         self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.progress_bar.setStyleSheet("""
-            QProgressBar { border: 2px solid #45475a; border-radius: 5px; text-align: center; color: #cdd6f4; }
-            QProgressBar::chunk { background-color: #89b4fa; }
+            QProgressBar { border: 2px solid #45475a; border-radius: 10px; text-align: center; color: #cdd6f4; font-weight: bold; background-color: #1e1e2e; height: 25px; }
+            QProgressBar::chunk { background-color: #89b4fa; border-radius: 8px; }
         """)
         self.progress_bar.setRange(0, 0)
         progress_layout.addWidget(self.progress_bar)
@@ -630,7 +643,18 @@ class SettingsView(QWidget):
         self.settings_manager = settings_manager
         self.is_dark = True
         
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_content = QWidget()
+        self.scroll.setWidget(self.scroll_content)
+        root_layout.addWidget(self.scroll)
+
+        layout = QVBoxLayout(self.scroll_content)
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(15)
 
@@ -675,12 +699,53 @@ class SettingsView(QWidget):
         self.edit_vt.setText(self.settings_manager.get("vt_api_key", ""))
         self.edit_vt.returnPressed.connect(self.save_all)
         v_layout.addWidget(self.edit_vt)
+        v_layout.addSpacing(5)
         
-        self.lbl_vt_hint = QLabel()
-        self.lbl_vt_hint.setObjectName("settingsHint")
-        self.lbl_vt_hint.setOpenExternalLinks(True)
-        v_layout.addWidget(self.lbl_vt_hint)
+        self.btn_vt_link = QPushButton()
+        self.btn_vt_link.setObjectName("settingsLink")
+        self.btn_vt_link.setFlat(True)
+        self.btn_vt_link.setMinimumHeight(28)
+        self.btn_vt_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_vt_link.clicked.connect(self._open_vt_link)
+        v_layout.addWidget(self.btn_vt_link, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self.vt_card)
+
+        # Breach Check Provider + Key
+        self.breach_card = QFrame()
+        self.breach_card.setObjectName("settingsCard")
+        b_layout = QVBoxLayout(self.breach_card)
+
+        self.lbl_breach_provider = QLabel()
+        self.lbl_breach_provider.setObjectName("settingsLabel")
+        b_layout.addWidget(self.lbl_breach_provider)
+
+        self.combo_breach_provider = QComboBox()
+        self.combo_breach_provider.setMinimumHeight(40)
+        b_layout.addWidget(self.combo_breach_provider)
+
+        b_layout.addSpacing(10)
+
+        self.lbl_breach_key = QLabel()
+        self.lbl_breach_key.setObjectName("settingsLabel")
+        b_layout.addWidget(self.lbl_breach_key)
+
+        self.edit_breach_key = QLineEdit()
+        self.edit_breach_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.edit_breach_key.setMinimumHeight(40)
+        self.edit_breach_key.returnPressed.connect(self.save_all)
+        b_layout.addWidget(self.edit_breach_key)
+        b_layout.addSpacing(5)
+
+        self.btn_breach_link = QPushButton()
+        self.btn_breach_link.setObjectName("settingsLink")
+        self.btn_breach_link.setFlat(True)
+        self.btn_breach_link.setMinimumHeight(28)
+        self.btn_breach_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_breach_link.clicked.connect(self._open_breach_provider_link)
+        b_layout.addWidget(self.btn_breach_link, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        self.combo_breach_provider.currentIndexChanged.connect(self._on_breach_provider_changed)
+        layout.addWidget(self.breach_card)
 
         # DB Update
         self.update_card = QFrame()
@@ -704,7 +769,20 @@ class SettingsView(QWidget):
         self.retranslate()
 
     def save_all(self):
-        self.settings_manager.set("vt_api_key", self.edit_vt.text())
+        ok1, msg1 = self.settings_manager.set("vt_api_key", self.edit_vt.text())
+
+        provider = "bd" if self.combo_breach_provider.currentIndex() == 0 else "hibp"
+        self.settings_manager.set("breach_provider", provider)
+
+        key_field = "bd_api_key" if provider == "bd" else "hibp_api_key"
+        ok2, msg2 = self.settings_manager.set(key_field, self.edit_breach_key.text())
+
+        if not ok1:
+            QMessageBox.warning(self, "Error", msg1 or "Invalid settings value.")
+            return
+        if not ok2:
+            QMessageBox.warning(self, "Error", msg2 or "Invalid settings value.")
+            return
         msg = self.trans.get("save_settings_success") 
         if msg == "save_settings_success": msg = "Settings saved successfully."
         QMessageBox.information(self, "Success", msg)
@@ -721,22 +799,46 @@ class SettingsView(QWidget):
         self.setStyleSheet(f"""
             QWidget {{ color: {c['text']}; }}
             #settingsTitle {{ font-size: 26px; font-weight: bold; color: {c['accent']}; margin-bottom: 5px; }}
-            #settingsCard {{ background-color: {c['card']}; border-radius: 12px; padding: 20px; }}
-            #settingsLabel {{ font-size: 14px; font-weight: bold; color: {c['text']}; }}
-            #settingsHint {{ font-size: 13px; color: {c['accent']}; }}
-            QComboBox {{ background-color: {c['bg']}; color: {c['text']}; padding: 10px; 
-                         border: 2px solid {c['card2']}; border-radius: 8px; font-size: 14px; }}
-            QComboBox::drop-down {{ border: none; }}
-            QLineEdit {{ background-color: {c['bg']}; color: {c['text']}; padding: 10px; 
-                         border: 2px solid {c['card2']}; border-radius: 8px; font-size: 14px; }}
+            #settingsCard {{ background-color: {c['card']}; border-radius: 12px; padding: 15px 20px; }}
+            #settingsLabel {{ font-size: 14px; font-weight: bold; color: {c['text']}; margin-bottom: 5px; }}
+            #settingsLink {{ font-size: 13px; color: #89b4fa; border: none; background: transparent; 
+                            text-align: left; padding: 8px 0px; text-decoration: underline; min-height: 28px; }}
+            #settingsLink:hover {{ color: {c['accent']}; font-weight: bold; }}
+            
+            QComboBox {{ background-color: {c['bg']}; color: {c['text']}; padding: 0px 12px; 
+                         border: 2px solid {c['card2']}; border-radius: 8px; font-size: 14px; min-height: 40px; }}
+            QComboBox::drop-down {{ border: none; width: 0px; }}
+            QComboBox QAbstractItemView {{ background-color: {c['card']}; selection-background-color: {c['accent']}; }}
+
+            QLineEdit {{ background-color: {c['bg']}; color: {c['text']}; padding: 10px 12px; 
+                         border: 2px solid {c['card2']}; border-radius: 8px; font-size: 14px; min-height: 40px; }}
             QLineEdit:focus {{ border-color: {c['accent']}; }}
+
             #updateBtn {{ background-color: {c['orange']}; color: #11111b; font-weight: bold; 
-                         padding: 12px; border-radius: 8px; font-size: 14px; border: none; }}
+                         padding: 5px; border-radius: 8px; font-size: 14px; border: none; min-height: 44px; }}
             #updateBtn:hover {{ background-color: {c['accent']}; }}
+
             #saveBtn {{ background-color: {c['green']}; color: #11111b; font-weight: bold; 
-                       padding: 18px; border-radius: 12px; font-size: 16px; border: none; margin-top: 10px; }}
+                       padding: 10px; border-radius: 12px; font-size: 16px; border: none; margin-top: 10px; min-height: 52px; }}
             #saveBtn:hover {{ background-color: {c['accent']}; }}
         """)
+        self.scroll.setStyleSheet("QScrollArea { border: none; }")
+        self.scroll_content.setStyleSheet(f"background-color: {c['bg']};")
+
+    def _open_vt_link(self):
+        url = self.trans.get('vt_key_link')
+        QDesktopServices.openUrl(QUrl(url))
+
+    def _open_breach_provider_link(self):
+        provider = "bd" if self.combo_breach_provider.currentIndex() == 0 else "hibp"
+        url = self.trans.get("bd_key_link") if provider == "bd" else self.trans.get("hibp_key_link")
+        QDesktopServices.openUrl(QUrl(url))
+
+    def _on_breach_provider_changed(self):
+        provider = "bd" if self.combo_breach_provider.currentIndex() == 0 else "hibp"
+        key_field = "bd_api_key" if provider == "bd" else "hibp_api_key"
+        self.edit_breach_key.setText(self.settings_manager.get(key_field, "") or "")
+        self._refresh_breach_provider_texts()
 
     def retranslate(self):
         self.title.setText(self.trans.get("settings_title"))
@@ -747,10 +849,22 @@ class SettingsView(QWidget):
         self.btn_save.setText(self.trans.get("save_settings"))
         self.lbl_vt.setText(self.trans.get("vt_api_key"))
         
-        # Robust HTML for the hint
-        hint_text = self.trans.get('get_vt_key')
-        link_url = self.trans.get('vt_key_link')
-        self.lbl_vt_hint.setText(f"<a href='{link_url}' style='color: #89b4fa; text-decoration: underline;'>➜ {hint_text}</a>")
+        self.btn_vt_link.setText(f"➜ {self.trans.get('get_vt_key')}")
+        # Provider combo items must be reloaded after language switch
+        stored = (self.settings_manager.get("breach_provider", "bd") or "bd").strip().lower()
+        cur_idx = 0 if stored == "bd" else 1
+        self.combo_breach_provider.blockSignals(True)
+        self.combo_breach_provider.clear()
+        self.combo_breach_provider.addItems([
+            self.trans.get("provider_option_bd"),
+            self.trans.get("provider_option_hibp"),
+        ])
+        self.combo_breach_provider.setCurrentIndex(cur_idx)
+        self.combo_breach_provider.blockSignals(False)
+
+        key_field = "bd_api_key" if stored == "bd" else "hibp_api_key"
+        self.edit_breach_key.setText(self.settings_manager.get(key_field, "") or "")
+        self._refresh_breach_provider_texts()
 
         # Preserve combo selection
         idx = self.combo_theme.currentIndex()
@@ -760,6 +874,13 @@ class SettingsView(QWidget):
         self.combo_theme.addItems([self.trans.get("dark_mode"), self.trans.get("light_mode")])
         self.combo_theme.setCurrentIndex(idx)
         self.combo_theme.blockSignals(False)
+
+    def _refresh_breach_provider_texts(self):
+        self.lbl_breach_provider.setText(self.trans.get("breach_provider"))
+        self.lbl_breach_key.setText(self.trans.get("breach_provider_key"))
+        provider = "bd" if self.combo_breach_provider.currentIndex() == 0 else "hibp"
+        link_text = self.trans.get("get_bd_key") if provider == "bd" else self.trans.get("get_hibp_key")
+        self.btn_breach_link.setText(f"➜ {link_text}")
 
 
 # ─────────────────────────────────────────────────────────
@@ -780,7 +901,7 @@ class MainWindow(QMainWindow):
         self.scanner_thread = None
         self.current_infected = []
         self.setWindowTitle("ClamApp — Security Suite")
-        self.resize(1200, 780)
+        self.resize(850, 650)
         self.setAcceptDrops(True)
 
         self.usb_guardian = USBGuardianLogic(callback=self.on_usb_detected)
@@ -845,12 +966,9 @@ class MainWindow(QMainWindow):
         # --- Settings view ---
         self.settings_view = SettingsView(self.wrapper, self.trans, self.settings_manager)
 
-        # --- New Expanded Modules ---
-        self.cleaner_view = CleanerView(self.trans)
-        self.audit_view = AuditView(self.trans, self.wrapper.data_manager)
-        self.startup_view = StartupView(self.trans)
-        self.app_manager_view = AppManagerView(self.trans)
-        self.task_manager_view = TaskManagerView(self.trans)
+        # --- Security Modules ---
+        self.breach_checker_view = BreachCheckerView(self.trans, self.settings_manager)
+        self.firewall_view = FirewallView(self.trans)
 
         # Add all sections to content_area (unified stack)
         # Indices:
@@ -858,22 +976,16 @@ class MainWindow(QMainWindow):
         #   1 = network_view
         #   2 = security_tabs
         #   3 = settings_view
-        #   4 = cleaner_view
-        #   5 = audit_view
-        #   6 = startup_view
-        #   7 = app_manager_view
-        #   8 = task_manager_view
-        #   9 = cloud_view
-        self.content_area.addWidget(self.antivirus_stack)  # 0
-        self.content_area.addWidget(self.network_view)     # 1
-        self.content_area.addWidget(self.security_tabs)    # 2
-        self.content_area.addWidget(self.settings_view)    # 3
-        self.content_area.addWidget(self.cleaner_view)     # 4
-        self.content_area.addWidget(self.audit_view)       # 5
-        self.content_area.addWidget(self.startup_view)     # 6
-        self.content_area.addWidget(self.app_manager_view) # 7
-        self.content_area.addWidget(self.task_manager_view) # 8
-        self.content_area.addWidget(self.cloud_view)        # 9
+        #   4 = cloud_view
+        #   5 = breach_checker_view
+        #   6 = firewall_view
+        self.content_area.addWidget(self.antivirus_stack)     # 0
+        self.content_area.addWidget(self.network_view)        # 1
+        self.content_area.addWidget(self.security_tabs)       # 2
+        self.content_area.addWidget(self.settings_view)       # 3
+        self.content_area.addWidget(self.cloud_view)          # 4
+        self.content_area.addWidget(self.breach_checker_view) # 5
+        self.content_area.addWidget(self.firewall_view)       # 6
 
         # Wire up sidebar buttons
         self.sidebar.btn_dashboard.clicked.connect(lambda: self._show_antivirus(0))
@@ -881,12 +993,11 @@ class MainWindow(QMainWindow):
         self.sidebar.btn_quarantine.clicked.connect(lambda: self._show_antivirus(3))
         self.sidebar.btn_schedule.clicked.connect(lambda: self._show_antivirus(4))
         self.sidebar.btn_network.clicked.connect(lambda: self._show_section(1))
-        self.sidebar.btn_cloud.clicked.connect(lambda: self._show_section(9))
+        self.sidebar.btn_cloud.clicked.connect(lambda: self._show_section(4))
         self.sidebar.btn_security.clicked.connect(lambda: self._show_section(2))
         self.sidebar.btn_settings.clicked.connect(lambda: self._show_settings())
-        self.sidebar.btn_startup.clicked.connect(lambda: self._show_extra_section(6))
-        self.sidebar.btn_apps.clicked.connect(lambda: self._show_extra_section(7))
-        self.sidebar.btn_tasks.clicked.connect(lambda: self._show_extra_section(8))
+        self.sidebar.btn_breach.clicked.connect(lambda: self._show_extra_section(5))
+        self.sidebar.btn_firewall.clicked.connect(lambda: self._show_extra_section(6))
 
         # Wire up scan buttons
         self.results_view.btn_back.clicked.connect(lambda: self._show_antivirus(1))
@@ -896,12 +1007,12 @@ class MainWindow(QMainWindow):
         self.scan_view.btn_custom.clicked.connect(self.start_custom_scan)
         self.scan_view.btn_stop.clicked.connect(self.stop_scan)
 
+        self._check_first_run()
+
         # Wire up settings
         self.settings_view.btn_update_db.clicked.connect(self.run_update)
         self.settings_view.combo_lang.currentIndexChanged.connect(self.change_language)
         self.settings_view.combo_theme.currentIndexChanged.connect(self.change_theme)
-
-        # No more dashboard quick scan button to wire
 
         # Scheduling
         self.scheduler = ScheduleLogic(self.settings_manager)
@@ -910,6 +1021,16 @@ class MainWindow(QMainWindow):
 
         # Apply initial theme
         self.apply_theme(self.is_dark)
+
+    def _check_first_run(self):
+        if not self.settings_manager.get("first_run_done", False):
+            msg = QMessageBox(self)
+            msg.setWindowTitle(self.trans.get("first_run_title"))
+            msg.setText(self.trans.get("first_run_body"))
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.addButton(self.trans.get("first_run_btn"), QMessageBox.ButtonRole.AcceptRole)
+            msg.exec()
+            self.settings_manager.set("first_run_done", True)
 
     # ── Theme ──────────────────────────────────────────────────────────────
 
@@ -947,12 +1068,9 @@ class MainWindow(QMainWindow):
         self.vault_view.apply_theme(dark)
         self.privacy_view.apply_theme(dark)
         self.network_view.apply_theme(dark)
-        self.cleaner_view.apply_theme(dark)
-        self.audit_view.apply_theme(dark)
-        self.startup_view.apply_theme(dark)
-        self.app_manager_view.apply_theme(dark)
-        self.task_manager_view.apply_theme(dark)
         self.cloud_view.apply_theme(dark)
+        self.breach_checker_view.apply_theme(dark)
+        self.firewall_view.apply_theme(dark)
         # Background of content area and stacked widgets
         for w in [self.content_area, self.antivirus_stack]:
             apply_palette(w, c)
@@ -987,12 +1105,9 @@ class MainWindow(QMainWindow):
         self.vault_view.retranslate()
         self.privacy_view.retranslate()
         self.network_view.retranslate()
-        self.cleaner_view.retranslate()
-        self.audit_view.retranslate()
-        self.startup_view.retranslate()
-        self.app_manager_view.retranslate()
-        self.task_manager_view.retranslate()
-        self.cloud_view.init_ui() # Simple way to refresh labels
+        self.cloud_view.init_ui()  # Simple way to refresh labels
+        self.breach_checker_view.retranslate()
+        self.firewall_view.retranslate()
         self.security_tabs.setTabText(0, self.trans.get("password_gen"))
         self.security_tabs.setTabText(1, self.trans.get("cipher_tool"))
         self.security_tabs.setTabText(2, self.trans.get("hash_tool"))
@@ -1022,10 +1137,10 @@ class MainWindow(QMainWindow):
             btn.blockSignals(False)
 
     def _show_section(self, content_index):
-        """Show network (1), security tools (2), or cloud (9) section."""
+        """Show network (1), security tools (2), or cloud (4) section."""
         self._uncheck_all_sidebar()
         self.content_area.setCurrentIndex(content_index)
-        btn_map = {1: self.sidebar.btn_network, 2: self.sidebar.btn_security, 9: self.sidebar.btn_cloud}
+        btn_map = {1: self.sidebar.btn_network, 2: self.sidebar.btn_security, 4: self.sidebar.btn_cloud}
         btn = btn_map.get(content_index)
         if btn:
             btn.blockSignals(True)
@@ -1035,9 +1150,11 @@ class MainWindow(QMainWindow):
     def _show_extra_section(self, content_index):
         self._uncheck_all_sidebar()
         self.content_area.setCurrentIndex(content_index)
-        btn_map = {4: self.sidebar.btn_cleaner, 5: self.sidebar.btn_audit, 
-                   6: self.sidebar.btn_startup, 7: self.sidebar.btn_apps,
-                   8: self.sidebar.btn_tasks}
+        if content_index == 6 and hasattr(self, "firewall_view"):
+            # Always refresh firewall state when user opens the tab
+            self.firewall_view.refresh_now()
+        btn_map = {5: self.sidebar.btn_breach,
+                   6: self.sidebar.btn_firewall}
         btn = btn_map.get(content_index)
         if btn:
             btn.blockSignals(True)
