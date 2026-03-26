@@ -152,36 +152,59 @@ class LogTailThread(QThread):
         self._log_path = log_path
         self._running = True
         self._proc = None
+        self._retry_count = 0
+        self._max_retries = 3
 
     def stop(self):
         self._running = False
         try:
             if self._proc and self._proc.poll() is None:
                 self._proc.terminate()
+                self._proc.wait(timeout=2)
         except Exception:
             pass
 
     def run(self):
-        try:
-            if not os.path.exists(self._log_path):
-                self.error.emit("missing")
+        while self._running and self._retry_count < self._max_retries:
+            try:
+                if not os.path.exists(self._log_path):
+                    self.error.emit("missing")
+                    return
+
+                # Use pkexec tail -f for persistent log streaming
+                # With Polkit policy, this should only prompt once per session
+                cmd = ["pkexec", "tail", "-n", "200", "-f", self._log_path]
+                self._proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                # Read stdout line-by-line
+                while self._running and self._proc.poll() is None:
+                    line = self._proc.stdout.readline() if self._proc.stdout else ""
+                    if not line:
+                        self.msleep(200)
+                        continue
+                    self.line_ready.emit(line.rstrip("\n"))
+                    self._retry_count = 0  # Reset retry count on successful read
+
+                # Check if process exited due to authentication failure
+                if self._proc.returncode != 0 and self._running:
+                    stderr = self._proc.stderr.read() if self._proc.stderr else ""
+                    if "Permission denied" in stderr or "cancelled" in stderr.lower():
+                        self.error.emit("permission")
+                        return
+                    else:
+                        self._retry_count += 1
+                        self.msleep(2000)  # Wait before retry
+                        continue
+
+            except PermissionError:
+                self.error.emit("permission")
                 return
-
-            # Use pkexec tail -f to avoid permission issues.
-            cmd = ["pkexec", "tail", "-n", "200", "-f", self._log_path]
-            self._proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-            # Read stdout line-by-line
-            while self._running and self._proc.poll() is None:
-                line = self._proc.stdout.readline() if self._proc.stdout else ""
-                if not line:
-                    self.msleep(200)
-                    continue
-                self.line_ready.emit(line.rstrip("\n"))
-        except PermissionError:
-            self.error.emit("permission")
-        except Exception as exc:
-            self.error.emit(str(exc))
+            except Exception as exc:
+                self._retry_count += 1
+                if self._retry_count >= self._max_retries:
+                    self.error.emit(str(exc))
+                    return
+                self.msleep(3000)  # Wait before retry
 
 
 # ─── Master Toggle Button ─────────────────────────────────────────────────────
@@ -427,11 +450,13 @@ class FirewallView(QWidget):
         self._log_thread = None
         self._fw_enabled = False
         self._last_status_ms = 0
-        self._status_cache_ttl_ms = 8000
+        self._status_cache_ttl_ms = 30000  # Increased to 30 seconds to reduce polling
         self._auto_refresh_timer = QTimer(self)
-        self._auto_refresh_timer.setInterval(8000)
+        self._auto_refresh_timer.setInterval(30000)  # 30 seconds instead of 8
         self._auto_refresh_timer.timeout.connect(self._refresh_status_cached)
         self._logging_ensured = False
+        self._permission_denied = False
+        self._unlock_btn = None
         self._init_ui()
         QTimer.singleShot(300, self._refresh_status)
 
@@ -723,14 +748,18 @@ class FirewallView(QWidget):
         self._status_thread.start()
 
     def _refresh_status_cached(self):
-        # avoid spamming ufw status and pkexec prompts
+        # Only refresh if explicitly requested or if cache expired
         now = int(QDateTime.currentMSecsSinceEpoch())
         if now - self._last_status_ms < self._status_cache_ttl_ms:
             return
-        self._refresh_status()
+        # Only auto-refresh in advanced mode to avoid constant prompts
+        if self.mode_stack.currentIndex() == 1:
+            self._refresh_status()
 
     def refresh_now(self):
         self._last_status_ms = 0
+        self._permission_denied = False
+        self._hide_unlock_button()
         self._refresh_status()
         if self.mode_stack.currentIndex() == 1:
             self._refresh_rules()
@@ -747,6 +776,16 @@ class FirewallView(QWidget):
     def _on_status_ready(self, result: dict):
         self.refresh_btn.setEnabled(True)
         self._last_status_ms = int(QDateTime.currentMSecsSinceEpoch())
+        
+        # Check for permission denied
+        if result.get("error") and "Permission denied" in result.get("error", ""):
+            self._permission_denied = True
+            self._show_unlock_button()
+            return
+            
+        self._permission_denied = False
+        self._hide_unlock_button()
+        
         if not result["installed"]:
             self.not_installed_frame.show()
             self.main_frame.hide()
@@ -814,7 +853,12 @@ class FirewallView(QWidget):
         if result["success"]:
             QTimer.singleShot(500, self._refresh_status)
         else:
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result["message"] or self.trans.get("fw_auth_failed_desc"))
+            # Check for permission denied
+            if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result["message"] or self.trans.get("fw_auth_failed_desc"))
             # Reset button state
             self.toggle_btn.set_enabled_state(self._fw_enabled)
 
@@ -831,7 +875,12 @@ class FirewallView(QWidget):
         if result["success"]:
             QTimer.singleShot(800, self._refresh_status)
         else:
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result["message"])
+            # Check for permission denied
+            if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result["message"])
 
     # ── Advanced: rules + logs ───────────────────────────────────────────────
     def _refresh_rules(self):
@@ -843,8 +892,12 @@ class FirewallView(QWidget):
 
     def _on_rules_ready(self, result: dict):
         if not result.get("success"):
-            # if user cancelled pkexec, show professional auth message
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
+            # Check for permission denied
+            if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
             return
         rules = result.get("rules", [])
         self._populate_rules_table(rules)
@@ -878,7 +931,12 @@ class FirewallView(QWidget):
         if result.get("success"):
             QTimer.singleShot(350, self._refresh_status)
         else:
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
+            # Check for permission denied
+            if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
 
     def _open_add_rule_dialog(self):
         dlg = AddRuleDialog(self.trans, self._c, parent=self)
@@ -897,7 +955,12 @@ class FirewallView(QWidget):
         if result.get("success"):
             QTimer.singleShot(450, self._refresh_status)
         else:
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
+            # Check for permission denied
+            if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), result.get("message") or self.trans.get("fw_auth_failed_desc"))
 
     def _start_log_thread(self):
         if self._log_thread and self._log_thread.isRunning():
@@ -929,7 +992,11 @@ class FirewallView(QWidget):
         self.log_box.appendPlainText(line)
 
     def _on_log_error(self, code: str):
-        self._show_logs_empty_state()
+        if code == "permission":
+            self._permission_denied = True
+            self._show_unlock_button()
+        else:
+            self._show_logs_empty_state()
 
     def _evaluate_log_empty_state(self):
         if self.mode_stack.currentIndex() != 1:
@@ -943,12 +1010,47 @@ class FirewallView(QWidget):
     def _enable_logging_clicked(self):
         res = self._backend.enable_logging(True)
         if not res.get("success"):
-            QMessageBox.warning(self, self.trans.get("fw_auth_failed"), res.get("message") or self.trans.get("fw_auth_failed_desc"))
+            # Check for permission denied
+            if "Permission denied" in res.get("message", "") or "cancelled" in res.get("message", "").lower():
+                self._permission_denied = True
+                self._show_unlock_button()
+            else:
+                QMessageBox.warning(self, self.trans.get("fw_auth_failed"), res.get("message") or self.trans.get("fw_auth_failed_desc"))
             return
         self.logs_empty.hide()
         self.log_box.appendPlainText("[ufw] logging enabled.")
         self._stop_log_thread()
         self._start_log_thread()
+
+    # ── Unlock Button for Permission Denied ───────────────────────────────────
+    def _show_unlock_button(self):
+        """Show unlock button when permission is denied."""
+        if self._unlock_btn is None:
+            self._unlock_btn = QPushButton("🔓 Unlock")
+            self._unlock_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._unlock_btn.setMinimumHeight(40)
+            self._unlock_btn.clicked.connect(self._on_unlock_clicked)
+            # Add to the status area
+            status_col = self.toggle_btn.parent().layout().itemAt(1).layout()
+            if status_col:
+                status_col.insertWidget(3, self._unlock_btn)
+        
+        self._unlock_btn.show()
+        self.status_header.setText("Authentication Required")
+        self.status_header.setStyleSheet("font-size: 20px; font-weight: bold; color: #fab387;")
+        self.status_text.setText("Click Unlock to authenticate")
+        self.status_text.setStyleSheet("font-size: 14px; color: #fab387; font-weight: bold;")
+
+    def _hide_unlock_button(self):
+        """Hide unlock button when permission is restored."""
+        if self._unlock_btn:
+            self._unlock_btn.hide()
+
+    def _on_unlock_clicked(self):
+        """Handle unlock button click - trigger authentication."""
+        self._permission_denied = False
+        self._hide_unlock_button()
+        self.refresh_now()
 
     # ── Theme ──────────────────────────────────────────────────────────────────
     def apply_theme(self, dark=True):

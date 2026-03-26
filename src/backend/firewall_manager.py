@@ -56,6 +56,20 @@ class FirewallManagerBackend:
     def _pkexec(self, *args: str) -> list:
         return ["pkexec", self.ufw_path(), *args]
 
+    def run_privileged_command(self, command: list) -> dict:
+        """
+        Execute a privileged UFW command using pkexec.
+        This method ensures consistent authentication behavior across all UFW operations.
+        
+        Args:
+            command: List of command arguments (e.g., ["status", "verbose"])
+            
+        Returns:
+            {"success": bool, "message": str}
+        """
+        cmd = ["pkexec", self.ufw_path()] + command
+        return self._run_privileged(cmd)
+
     def get_status(self) -> dict:
         """
         Returns:
@@ -69,28 +83,15 @@ class FirewallManagerBackend:
         if not self.is_ufw_installed():
             return {"installed": False, "enabled": False, "rules": [], "error": "UFW is not installed."}
 
-        output = ""
-
-        # Try pkexec first for consistent GUI experience.
-        # Polkit policy (com.clamapp.ufw.policy) will handle auth caching.
-        for cmd in [
-            [self.ufw_path(), "status", "verbose"], # Try unprivileged first
-            self._pkexec("status", "verbose"),
-        ]:
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                combined = (result.stdout or "") + (result.stderr or "")
-                if "Status:" in combined:
-                    output = combined
-                    break
-            except Exception as exc:
-                log.debug("UFW status attempt failed: %s", exc)
-                continue
-
-        if not output:
+        # Use unified authentication for all status checks to ensure caching
+        # This prevents mixing authentication contexts
+        result = self.run_privileged_command(["status", "verbose"])
+        
+        if not result["success"]:
             return {"installed": True, "enabled": False, "rules": [], 
-                    "error": "Permission denied reading UFW status."}
+                    "error": result.get("message", "Permission denied reading UFW status.")}
 
+        output = result["message"]
         enabled = "Status: active" in output
         rules = self._parse_rules(output)
         logging_on = self._parse_logging_enabled(output)
@@ -101,13 +102,9 @@ class FirewallManagerBackend:
         if not self.is_ufw_installed():
             return {"success": False, "rules": [], "message": "UFW is not installed."}
 
-        for cmd in [
-            [self.ufw_path(), "status", "numbered"],
-            self._pkexec("status", "numbered"),
-        ]:
-            res = self._run_maybe_privileged(cmd)
-            if res["success"] and res.get("message"):
-                return {"success": True, "rules": self._parse_numbered_rules(res["message"]), "message": ""}
+        result = self.run_privileged_command(["status", "numbered"])
+        if result["success"] and result.get("message"):
+            return {"success": True, "rules": self._parse_numbered_rules(result["message"]), "message": ""}
         return {"success": False, "rules": [], "message": "Authorization failed."}
 
     def is_logging_enabled(self) -> dict:
@@ -128,16 +125,16 @@ class FirewallManagerBackend:
     def enable_logging(self, enabled: bool) -> dict:
         if not self.is_ufw_installed():
             return {"success": False, "message": "UFW is not installed."}
-        cmd = self._pkexec("logging", "on" if enabled else "off")
-        return self._run_privileged(cmd)
+        cmd = ["logging", "on" if enabled else "off"]
+        return self.run_privileged_command(cmd)
 
     def set_enabled(self, enabled: bool) -> dict:
         """Enable or disable the firewall. Returns {"success": bool, "message": str}."""
         if not self.is_ufw_installed():
             return {"success": False, "message": "UFW is not installed."}
 
-        cmd = self._pkexec("--force", "enable" if enabled else "disable")
-        result = self._run_privileged(cmd)
+        cmd = ["--force", "enable" if enabled else "disable"]
+        result = self.run_privileged_command(cmd)
         if result["success"]:
             log.info("UFW %s successfully.", "enabled" if enabled else "disabled")
         else:
@@ -153,23 +150,23 @@ class FirewallManagerBackend:
             return {"success": False, "message": f"Unknown profile: {profile_name}"}
 
         # Reset first, then apply the profile
-        reset_result = self._run_privileged(self._pkexec("--force", "reset"))
+        reset_result = self.run_privileged_command(["--force", "reset"])
         if not reset_result["success"]:
             return reset_result
 
         errors = []
         for kind, argv in actions:
             if kind == "default":
-                parts = self._pkexec("default", *argv)
+                cmd = ["default"] + argv
             else:
-                parts = self._pkexec(*argv)
-            r = self._run_privileged(parts)
+                cmd = argv
+            r = self.run_privileged_command(cmd)
             if not r["success"]:
                 errors.append(r["message"])
-                log.warning("UFW profile action failed: %s — %s", parts, r["message"])
+                log.warning("UFW profile action failed: %s — %s", cmd, r["message"])
 
         # Re-enable after applying rules
-        self._run_privileged(self._pkexec("--force", "enable"))
+        self.run_privileged_command(["--force", "enable"])
 
         if errors:
             return {"success": False, "message": "Some rules failed:\n" + "\n".join(errors)}
@@ -179,8 +176,8 @@ class FirewallManagerBackend:
     def delete_rule(self, rule_id: int) -> dict:
         if not self.is_ufw_installed():
             return {"success": False, "message": "UFW is not installed."}
-        cmd = self._pkexec("--force", "delete", str(rule_id))
-        return self._run_privileged(cmd)
+        cmd = ["--force", "delete", str(rule_id)]
+        return self.run_privileged_command(cmd)
 
     def add_rule(self, action: str, direction: str, port: str, protocol: str) -> dict:
         """
@@ -206,8 +203,8 @@ class FirewallManagerBackend:
             return {"success": False, "message": "Port/service is required."}
 
         spec = port if protocol == "any" else f"{port}/{protocol}"
-        cmd = self._pkexec(action, direction, spec)
-        return self._run_privileged(cmd)
+        cmd = [action, direction, spec]
+        return self.run_privileged_command(cmd)
 
     def _run_privileged(self, cmd: list) -> dict:
         try:
