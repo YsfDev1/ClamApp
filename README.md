@@ -269,7 +269,6 @@ Please do **not** commit `app_data.json` or anything inside `quarantine/` — bo
 ClamAV® is a registered trademark of Cisco Systems, Inc. This project is not affiliated with or endorsed by Cisco.
 =======
 
-**Built on:** Pardus 25
 
 
 
