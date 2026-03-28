@@ -70,11 +70,14 @@ def _version_tuple(version_str: str) -> tuple:
 
 
 if __name__ == "__main__":
-    print(f"{__app_name__} v{__version__}")
+    from utils.logger import get_logger
+    logger = get_logger("Version")
+    
+    logger.info(f"{__app_name__} v{__version__}")
     result = check_for_updates()
     if result["error"]:
-        print(f"Update check failed: {result['error']}")
+        logger.error(f"Update check failed: {result['error']}")
     elif result["up_to_date"]:
-        print("You are running the latest version.")
+        logger.info("You are running the latest version.")
     else:
-        print(f"Update available: v{result['latest']} — {result['url']}")
+        logger.info(f"Update available: v{result['latest']} — {result['url']}")

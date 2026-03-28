@@ -139,5 +139,7 @@ class ClamWrapper:
             return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
+    from utils.logger import get_logger
+    logger = get_logger("ClamWrapper")
     wrapper = ClamWrapper()
-    print(f"ClamAV Version: {wrapper.get_version()}")
+    logger.info(f"ClamAV Version: {wrapper.get_version()}")

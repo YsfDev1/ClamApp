@@ -115,6 +115,52 @@ This creates (with secure permissions):
 
 ---
 
+## 🔥 Firewall Manager (NEW in v1.0)
+
+ClamApp includes a professional UFW (Uncomplicated Firewall) management interface with:
+
+### Features
+- **One-Time Authentication**: PolicyKit integration eliminates repetitive password prompts
+- **Security Profiles**: Home, Public/Work, and Kill-Switch presets
+- **Live Traffic Telemetry**: Real-time log streaming with color-coded highlighting
+- **Advanced Console**: Numbered rules table with visual indicators (🟢 ALLOW, 🔴 DENY)
+- **Cross-Distro Support**: Works on Ubuntu, Pardus, Fedora, Arch, and more
+
+### Polkit Setup (Recommended for v1.0)
+
+For the best user experience with single password prompts, install the PolicyKit policy:
+
+```bash
+# Install the policy file
+sudo cp com.clamapp.policy /usr/share/polkit-1/actions/
+sudo chmod 644 /usr/share/polkit-1/actions/com.clamapp.policy
+
+# Restart PolicyKit service
+sudo systemctl restart polkit
+```
+
+**What this does:**
+- 🔐 **Single Authentication**: Password prompt only ONCE per desktop session
+- 🛡️ **Professional UX**: No hanging dialogs or repeated prompts
+- 🔒 **Secure**: PolicyKit ensures proper privilege escalation
+
+### Firewall Profiles
+
+| Profile | Description | Commands Applied |
+|---------|-------------|-----------------|
+| **Home** | Basic protection | `ufw default deny incoming` + `ufw default allow outgoing` |
+| **Public/Work** | Stealth mode | `ufw default deny incoming` + `ufw default allow outgoing` + `ufw deny icmp` |
+| **Kill-Switch** | Emergency lockdown | `ufw default deny incoming` + `ufw default deny outgoing` |
+
+### Log File Locations
+
+ClamApp automatically detects UFW log files:
+- Primary: `/var/log/ufw.log`
+- Rotated: `/var/log/ufw.log.1`
+- Fallback: `/var/log/kern.log`
+
+---
+
 ## Updating Virus Definitions
 
 ClamAV ships without a live database. You **must** update it before your first scan:

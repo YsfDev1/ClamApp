@@ -1,6 +1,36 @@
+# ClamApp v1.0 - Requirements
+# Core GUI Framework
 PyQt6>=6.4.0
-psutil>=5.9.0
+
+# System Integration
+python3-pyqt6
+
+# Security & Cryptography
 cryptography>=41.0.0
-Pillow>=10.0.0
-pyudev>=0.24.0
+
+# HTTP Requests
 requests>=2.31.0
+
+# System Monitoring
+psutil>=5.9.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Device Monitoring (USB Guardian)
+pyudev>=0.24.0
+
+# Built-in modules (no external packages needed):
+# - logging (for centralized logging)
+# - os, pathlib (for cross-platform paths)
+# - json (for configuration)
+# - datetime (for timestamps)
+# - subprocess (for system calls)
+# - threading (for QThread)
+
+# Optional: Enhanced logging
+# colorlog>=6.7.0
+
+# Development/Testing (not required for runtime):
+# pytest>=7.0.0
+# pytest-qt>=4.2.0

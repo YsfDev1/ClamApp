@@ -107,6 +107,13 @@ class FirewallManagerBackend:
             return {"success": True, "rules": self._parse_numbered_rules(result["message"]), "message": ""}
         return {"success": False, "rules": [], "message": "Authorization failed."}
 
+    def sync_rules(self) -> dict:
+        """
+        Sync rules from UFW and return current state.
+        This is the main method for getting all firewall rules.
+        """
+        return self.get_rules_numbered()
+
     def is_logging_enabled(self) -> dict:
         st = self.get_status()
         if not st.get("installed"):

@@ -18,16 +18,47 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QButtonGroup, QMessageBox, QSizePolicy, QStackedWidget,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QDialog, QFormLayout, QLineEdit, QComboBox, QCheckBox, QPlainTextEdit, QSplitter
+    QDialog, QFormLayout, QLineEdit, QComboBox, QCheckBox, QPlainTextEdit, QSplitter,
+    QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QDateTime
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QTextCursor
 
 if os.path.dirname(os.path.dirname(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from backend.firewall_manager import FirewallManagerBackend
 
+
+# ─── Loading Spinner ───────────────────────────────────────────────────────
+class LoadingSpinner(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(24, 24)
+        self._angle = 0
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._rotate)
+        self._color = "#89b4fa"
+
+    def start(self):
+        self._timer.start(50)
+
+    def stop(self):
+        self._timer.stop()
+
+    def _rotate(self):
+        self._angle = (self._angle + 10) % 360
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.translate(12, 12)
+        painter.rotate(self._angle)
+        
+        pen = QPen(QColor(self._color), 3)
+        painter.setPen(pen)
+        painter.drawArc(-8, -8, 16, 16, 0, 270)
 
 # ─── Pulsing indicator dot ────────────────────────────────────────────────────
 class PulsingDot(QWidget):
@@ -147,8 +178,25 @@ class LogTailThread(QThread):
     line_ready = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, log_path: str = "/var/log/ufw.log", parent=None):
+    def __init__(self, log_path: str = None, parent=None):
         super().__init__(parent)
+        # Use cross-distro compatible log path
+        if log_path is None:
+            # Check common UFW log locations
+            possible_paths = [
+                "/var/log/ufw.log",
+                "/var/log/ufw.log.1",  # Some systems use rotated logs
+                "/var/log/kern.log",  # Fallback for systems without UFW logging
+            ]
+            log_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    log_path = path
+                    break
+            # Default to standard path if none found
+            if log_path is None:
+                log_path = "/var/log/ufw.log"
+        
         self._log_path = log_path
         self._running = True
         self._proc = None
@@ -207,6 +255,21 @@ class LogTailThread(QThread):
                 self.msleep(3000)  # Wait before retry
 
 
+class InstallUfwThread(QThread):
+    done = pyqtSignal(bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def run(self):
+        try:
+            cmd = ["pkexec", "apt", "install", "-y", "ufw"]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc.wait(timeout=60)  # Wait up to 60 seconds for installation
+            self.done.emit(True)
+        except Exception:
+            self.done.emit(False)
+
 # ─── Master Toggle Button ─────────────────────────────────────────────────────
 class MasterToggleButton(QPushButton):
     """Large glowing toggle button for firewall enable/disable."""
@@ -216,9 +279,57 @@ class MasterToggleButton(QPushButton):
         self.setFixedSize(160, 160)
         self.setCheckable(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._loading = False
+        self._spinner = LoadingSpinner(self)
+        self._spinner.move(68, 68)
+        self._spinner.hide()
+        
+        # Add glow effect
+        self._glow_effect = QGraphicsDropShadowEffect(self)
+        self._glow_effect.setBlurRadius(20)
+        self._glow_effect.setColor(QColor("#40a02b"))
+        self._glow_effect.setOffset(0, 0)
+        self.setGraphicsEffect(self._glow_effect)
+        self._glow_effect.setEnabled(False)
+        
         self._update_style(False)
 
+    def set_loading(self, loading: bool):
+        """Show/hide loading spinner and disable/enable button."""
+        self._loading = loading
+        if loading:
+            self._spinner.start()
+            self._spinner.show()
+            self.setEnabled(False)
+            self.setStyleSheet("""
+                QPushButton {
+                    background: qradialgradient(cx:0.5, cy:0.5, radius:0.5,
+                        fx:0.5, fy:0.5, stop:0 #89b4fa, stop:1 #45475a);
+                    border-radius: 80px;
+                    border: 4px solid #89b4fa;
+                    color: #cdd6f4;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+            """)
+            self.setText("⏳\nLoading")
+        else:
+            self._spinner.stop()
+            self._spinner.hide()
+            self.setEnabled(True)
+            self._update_style(self.isChecked())
+
     def _update_style(self, enabled: bool):
+        if self._loading:
+            return  # Don't change style while loading
+            
+        # Control glow effect
+        if enabled:
+            self._glow_effect.setEnabled(True)
+            self._glow_effect.setColor(QColor("#40a02b"))  # Green glow for active
+        else:
+            self._glow_effect.setEnabled(False)  # No glow when inactive
+            
         if enabled:
             self.setStyleSheet("""
                 QPushButton {
@@ -448,6 +559,7 @@ class FirewallView(QWidget):
         self._delete_thread = None
         self._add_rule_thread = None
         self._log_thread = None
+        self._install_thread = None
         self._fw_enabled = False
         self._last_status_ms = 0
         self._status_cache_ttl_ms = 30000  # Increased to 30 seconds to reduce polling
@@ -482,16 +594,37 @@ class FirewallView(QWidget):
         outer.setContentsMargins(40, 36, 40, 24)
         outer.setSpacing(0)
 
-        # — Title —
+        # — Title with Global Status —
         title_row = QHBoxLayout()
+        
+        # Status indicator on the left
+        self.global_status_dot = QLabel()
+        self.global_status_dot.setFixedSize(16, 16)
+        self.global_status_dot.setStyleSheet("""
+            QLabel { 
+                background-color: #f38ba8; 
+                border-radius: 8px; 
+                border: 2px solid #45475a;
+            }
+        """)
+        
+        self.global_status_lbl = QLabel()
+        self.global_status_lbl.setStyleSheet("font-size: 14px; font-weight: bold; color: #f38ba8;")
+        
+        status_col = QHBoxLayout()
+        status_col.addWidget(self.global_status_dot)
+        status_col.addWidget(self.global_status_lbl)
+        status_col.addStretch()
+        
+        title_col = QVBoxLayout()
         self.title_lbl = QLabel()
         self.title_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #89b4fa;")
         self.subtitle_lbl = QLabel()
         self.subtitle_lbl.setStyleSheet("font-size: 13px; color: #585b70;")
-        tc = QVBoxLayout()
-        tc.addWidget(self.title_lbl)
-        tc.addWidget(self.subtitle_lbl)
-        title_row.addLayout(tc)
+        title_col.addLayout(status_col)
+        title_col.addWidget(self.title_lbl)
+        title_col.addWidget(self.subtitle_lbl)
+        title_row.addLayout(title_col)
         title_row.addStretch()
 
         # Mode pills
@@ -665,6 +798,14 @@ class FirewallView(QWidget):
         self.rules_title.setStyleSheet("font-size: 16px; font-weight: bold;")
         rules_header.addWidget(self.rules_title)
         rules_header.addStretch()
+        
+        # Add sync button
+        self.btn_sync_rules = QPushButton()
+        self.btn_sync_rules.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_sync_rules.setMinimumHeight(36)
+        self.btn_sync_rules.clicked.connect(self._sync_rules_clicked)
+        rules_header.addWidget(self.btn_sync_rules)
+        
         self.btn_add_rule = QPushButton()
         self.btn_add_rule.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_add_rule.setMinimumHeight(40)
@@ -672,7 +813,8 @@ class FirewallView(QWidget):
         rules_header.addWidget(self.btn_add_rule)
         rcl.addLayout(rules_header)
 
-        self.rules_table = QTableWidget(0, 7)
+        # Update table to 8 columns for icons
+        self.rules_table = QTableWidget(0, 8)
         self.rules_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.rules_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.rules_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -765,13 +907,19 @@ class FirewallView(QWidget):
             self._refresh_rules()
 
     def _on_fix_clicked(self):
-        try:
-            cmd = ["pkexec", "apt", "install", "-y", "ufw"]
-            import subprocess
-            subprocess.Popen(cmd)
+        """Handle UFW installation in a separate thread to avoid UI blocking."""
+        if self._install_thread and self._install_thread.isRunning():
+            return
+            
+        self._install_thread = InstallUfwThread(self)
+        self._install_thread.done.connect(self._on_install_done)
+        self._install_thread.start()
+
+    def _on_install_done(self, success: bool):
+        if success:
             QMessageBox.information(self, "Installing UFW", "Terminal prompt opened to install UFW. Please refresh once complete.")
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Could not launch installer: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Error", "Could not launch installer. Please install UFW manually: sudo apt install ufw")
 
     def _on_status_ready(self, result: dict):
         self.refresh_btn.setEnabled(True)
@@ -816,6 +964,17 @@ class FirewallView(QWidget):
     def _update_status_ui(self, enabled: bool):
         c = self._c
         if enabled:
+            # Update global status
+            self.global_status_dot.setStyleSheet(f"""
+                QLabel {{ 
+                    background-color: {c['green']}; 
+                    border-radius: 8px; 
+                    border: 2px solid {c['card2']};
+                }}
+            """)
+            self.global_status_lbl.setText(self.trans.get("fw_active") or "Firewall Active")
+            self.global_status_lbl.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {c['green']};")
+            
             self.status_header.setText(self.trans.get("fw_protected") or "System Protected")
             # Security Green
             self.status_header.setStyleSheet("font-size: 20px; font-weight: bold; color: #40a02b;")
@@ -827,6 +986,17 @@ class FirewallView(QWidget):
             )
             self.pulse_dot.set_color("#40a02b")
         else:
+            # Update global status
+            self.global_status_dot.setStyleSheet(f"""
+                QLabel {{ 
+                    background-color: {c['red']}; 
+                    border-radius: 8px; 
+                    border: 2px solid {c['card2']};
+                }}
+            """)
+            self.global_status_lbl.setText(self.trans.get("fw_system_vulnerable") or "System Vulnerable")
+            self.global_status_lbl.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {c['red']};")
+            
             self.status_header.setText(self.trans.get("fw_unprotected") or "System Unprotected")
             # Warning Red
             self.status_header.setStyleSheet("font-size: 20px; font-weight: bold; color: #d20f39;")
@@ -843,13 +1013,13 @@ class FirewallView(QWidget):
         if self._toggle_thread and self._toggle_thread.isRunning():
             return
         new_state = not self._fw_enabled
-        self.toggle_btn.setEnabled(False)
+        self.toggle_btn.set_loading(True)
         self._toggle_thread = ToggleThread(self._backend, new_state, self)
         self._toggle_thread.done.connect(self._on_toggle_done)
         self._toggle_thread.start()
 
     def _on_toggle_done(self, result: dict):
-        self.toggle_btn.setEnabled(True)
+        self.toggle_btn.set_loading(False)
         if result["success"]:
             QTimer.singleShot(500, self._refresh_status)
         else:
@@ -874,6 +1044,9 @@ class FirewallView(QWidget):
     def _on_profile_done(self, result: dict, profile_name: str):
         if result["success"]:
             QTimer.singleShot(800, self._refresh_status)
+            # Auto-sync rules in advanced mode
+            if self.mode_stack.currentIndex() == 1:
+                QTimer.singleShot(1200, self._refresh_rules)
         else:
             # Check for permission denied
             if "Permission denied" in result.get("message", "") or "cancelled" in result.get("message", "").lower():
@@ -905,18 +1078,45 @@ class FirewallView(QWidget):
     def _populate_rules_table(self, rules: list[dict]):
         self.rules_table.setRowCount(len(rules))
         for row, r in enumerate(rules):
-            self.rules_table.setItem(row, 0, QTableWidgetItem(str(r.get("id", ""))))
-            self.rules_table.setItem(row, 1, QTableWidgetItem(str(r.get("action", ""))))
-            self.rules_table.setItem(row, 2, QTableWidgetItem(str(r.get("direction", ""))))
-            self.rules_table.setItem(row, 3, QTableWidgetItem(str(r.get("port_service", ""))))
-            self.rules_table.setItem(row, 4, QTableWidgetItem(str(r.get("protocol", ""))))
-            self.rules_table.setItem(row, 5, QTableWidgetItem(str(r.get("target", ""))))
+            # Column 0: Status Icon
+            action = str(r.get("action", "")).lower()
+            if action == "allow":
+                icon_label = QLabel("🟢")
+                icon_label.setStyleSheet("font-size: 16px;")
+                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            elif action in ["deny", "reject"]:
+                icon_label = QLabel("🔴")
+                icon_label.setStyleSheet("font-size: 16px;")
+                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            else:
+                icon_label = QLabel("⚪")
+                icon_label.setStyleSheet("font-size: 16px;")
+                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.rules_table.setCellWidget(row, 0, icon_label)
+            
+            # Column 1: ID
+            self.rules_table.setItem(row, 1, QTableWidgetItem(str(r.get("id", ""))))
+            # Column 2: Action
+            self.rules_table.setItem(row, 2, QTableWidgetItem(str(r.get("action", ""))))
+            # Column 3: Direction
+            self.rules_table.setItem(row, 3, QTableWidgetItem(str(r.get("direction", ""))))
+            # Column 4: Port/Service
+            self.rules_table.setItem(row, 4, QTableWidgetItem(str(r.get("port_service", ""))))
+            # Column 5: Protocol
+            self.rules_table.setItem(row, 5, QTableWidgetItem(str(r.get("protocol", ""))))
+            # Column 6: Target
+            self.rules_table.setItem(row, 6, QTableWidgetItem(str(r.get("target", ""))))
+            # Column 7: Delete button
             btn = QPushButton(self.trans.get("fw_rule_delete"))
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(30)
             rule_id = int(r.get("id", 0) or 0)
             btn.clicked.connect(lambda _=False, rid=rule_id: self._delete_rule(rid))
-            self.rules_table.setCellWidget(row, 6, btn)
+            self.rules_table.setCellWidget(row, 7, btn)
+
+    def _sync_rules_clicked(self):
+        """Handle sync rules button click."""
+        self._refresh_rules()
 
     def _delete_rule(self, rule_id: int):
         if rule_id <= 0:
@@ -989,7 +1189,28 @@ class FirewallView(QWidget):
     def _append_log_line(self, line: str):
         if self.logs_empty.isVisible():
             self.logs_empty.hide()
-        self.log_box.appendPlainText(line)
+        
+        # Apply highlighting based on log content
+        formatted_line = line
+        if "[UFW BLOCK]" in line.upper():
+            # Dark red for blocked traffic
+            formatted_line = f'<span style="color: #dc143c; font-weight: bold;">{line}</span>'
+        elif "[UFW ALLOW]" in line.upper():
+            # Dark green for allowed traffic  
+            formatted_line = f'<span style="color: #006400; font-weight: bold;">{line}</span>'
+        
+        # Use appendHtml for colored text
+        cursor = self.log_box.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertHtml(formatted_line + "<br>")
+        self.log_box.setTextCursor(cursor)
+        self.log_box.ensureCursorVisible()
+        
+        # Memory optimization: keep only last 200 lines
+        if self.log_box.document().blockCount() > 200:
+            cursor.movePosition(QTextCursor.MoveOperation.Start)
+            cursor.movePosition(QTextCursor.MoveOperation.Down, QTextCursor.MoveMode.KeepAnchor, 20)
+            cursor.removeSelectedText()
 
     def _on_log_error(self, code: str):
         if code == "permission":
@@ -1113,13 +1334,15 @@ class FirewallView(QWidget):
         # Advanced labels
         self.chk_ipv6.setText(self.trans.get("fw_ipv6"))
         self.chk_icmp.setText(self.trans.get("fw_icmp_hide"))
-        self.rules_title.setText(self.trans.get("fw_rules"))
-        self.logs_title.setText(self.trans.get("fw_logs"))
+        self.rules_title.setText(self.trans.get("fw_active_rules"))
+        self.logs_title.setText(self.trans.get("fw_telemetry"))
+        self.btn_sync_rules.setText(self.trans.get("fw_sync_rules"))
         self.btn_add_rule.setText(self.trans.get("fw_add_rule"))
         self.lbl_no_logs.setText(self.trans.get("fw_no_logs"))
         self.btn_enable_logging.setText(self.trans.get("fw_enable_logging"))
 
         self.rules_table.setHorizontalHeaderLabels([
+            "",
             "ID",
             self.trans.get("fw_rule_action"),
             self.trans.get("fw_rule_direction"),

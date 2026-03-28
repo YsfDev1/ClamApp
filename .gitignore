@@ -73,3 +73,9 @@ freshclam.log
 *.key
 *.p12
 *.vault
+
+# ── Project Summaries & Documentation ───────────────────────
+*SUMMARY.md
+*FIX_SUMMARY.md
+*ENHANCEMENTS_SUMMARY.md
+*POLICY.md
